@@ -1,7 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>z&#333;na</title>
-<script>/* Phones open in light mode unless the viewer picked a theme. */try{var r=document.documentElement;if(!r.hasAttribute("data-theme")&&!matchMedia("(min-width:900px) and (min-height:620px)").matches)r.setAttribute("data-theme","light");}catch(e){}</script>
+<script>/* Light by default on every device; dark only when data-theme="dark" is set. */try{var r=document.documentElement;if(!r.hasAttribute("data-theme"))r.setAttribute("data-theme","light");}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
@@ -24,7 +24,7 @@
   --gx:max(16px,env(safe-area-inset-left,0px)); --gxr:max(16px,env(safe-area-inset-right,0px));
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){
+@media not all{
   :root:not([data-theme="light"]){
     --bg:#101418; --panel:#171C22; --panel-2:#1E252C; --ink:#ECE9E2; --muted:#A3ABB3; --line:#2C343C; --line-ctl:#6B7681; --hatch:#252C33;
     --accent:#FF8A4C; --accent-strong:#FFA06B; --accent-fill:#E26103; --on-accent:#1A0E06; --accent-soft:#3D2414;
@@ -126,6 +126,13 @@ body{overflow:hidden}
 .lot{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--gxr) calc(20px + env(safe-area-inset-bottom,0px)) var(--gx);display:flex;flex-direction:column;gap:16px}
 .grab{flex:none;height:40px;width:100%;border:0;background:transparent;display:grid;place-items:center;touch-action:none;cursor:grab}
 .app.dragging .grab{cursor:grabbing}
+.phd{flex:none;padding:0 var(--gxr) 8px var(--gx);display:flex;align-items:center;gap:8px;font-size:.8125rem;color:var(--muted)}
+.phd{flex-wrap:wrap;justify-content:space-between}
+.phd b{font-weight:600;color:var(--brand)}
+.mk summary{cursor:pointer;color:var(--brand);font-weight:500;min-height:28px;display:inline-flex;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.mk .legend{padding:8px 0 4px;flex-basis:100%}
+.mk{flex-basis:auto}
+.mk[open]{flex-basis:100%}
 .grab span{width:44px;height:5px;border-radius:99px;background:var(--line-ctl)}
 .maplibregl-ctrl-bottom-right{bottom:calc(var(--peek) + 4px)!important}
 
@@ -135,7 +142,7 @@ body{overflow:hidden}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.875rem;color:var(--muted)}
 .meta b{color:var(--ink);font-weight:500}
 .tier,.dash{font-size:.8125rem;font-weight:500;padding:1px 8px;border-radius:999px;border:1.5px solid var(--line-ctl);color:var(--muted);white-space:nowrap}
-.tier.p{border-color:var(--accent);color:var(--accent-strong)}
+.tier.p{border-color:var(--muted);color:var(--ink)}
 .tier.n,.dash{border-style:dashed}
 .dash{border-color:var(--muted)}
 
@@ -216,7 +223,7 @@ body{overflow:hidden}
 .maplibregl-ctrl-group button{width:44px!important;height:44px!important}
 .maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
 :root[data-theme="dark"] .maplibregl-ctrl-icon{filter:invert(1)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .maplibregl-ctrl-icon{filter:invert(1)}}
+@media not all{:root:not([data-theme="light"]) .maplibregl-ctrl-icon{filter:invert(1)}}
 .maplibregl-ctrl-attrib{background:var(--panel)!important;color:var(--muted)!important;font-size:11px!important;border-radius:10px!important}
 .maplibregl-ctrl-attrib a{color:var(--muted)!important}
 
@@ -264,8 +271,8 @@ body{overflow:hidden}
 .ev[aria-pressed="true"]{border-color:var(--brand);background:var(--brand);color:var(--on-brand)}
 .wrows{display:grid;border-top:1px solid var(--line)}
 .wrow{display:flex;align-items:center;gap:12px;min-height:50px;border:0;border-bottom:1px solid var(--line);background:none;padding:0;text-align:left}
-.wrow span{flex:1 1 auto;font-size:.9688rem;font-weight:500}
-.wrow em{font-style:normal;font-size:.8438rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.wrow span{flex:1 1 auto;font-size:.9375rem;font-weight:500}
+.wrow em{font-style:normal;font-size:.875rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .wrow svg{flex:none;width:16px;height:16px;color:var(--muted)}
 .wrow:hover span{color:var(--brand)}
 .qchips{display:flex;flex-wrap:wrap;gap:8px}
@@ -274,14 +281,23 @@ body{overflow:hidden}
 .rung{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .rung .gl{width:1.75rem;height:1.75rem}
 .rung b{display:block;font-weight:600;font-size:.9375rem}
-.rung span{font-size:.8438rem;color:var(--muted)}
+.rung span{font-size:.875rem;color:var(--muted)}
 .rung em{font-style:normal;font-variant-numeric:tabular-nums;font-weight:500}
 .dlist{display:grid}
-.drow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9063rem}
+.drow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9375rem}
 .drow i{flex:none;width:10px;height:10px;border-radius:3px;margin-top:6px}
 .drow span{flex:1 1 auto}
 .drow small{color:var(--muted);font-size:.8125rem;margin-left:4px}
 .drow b{font-weight:500;font-variant-numeric:tabular-nums;color:var(--muted)}
+.mored{display:grid;gap:8px}
+.mored[open]>summary{margin-bottom:8px}
+.mored>summary{list-style:none;display:flex;align-items:center;justify-content:center}
+.mored>summary::-webkit-details-marker{display:none}
+.mored>div+div{margin-top:8px}
+.yours{font-size:.9375rem;color:var(--muted)}
+.yours b{color:var(--ink);font-weight:600}
+.verdict{font-size:1.25rem;line-height:1.35;letter-spacing:-.01em;text-wrap:balance}
+.verdict b{font-weight:600}
 .catch{display:grid;gap:8px;padding:14px 16px;border-radius:14px;background:var(--panel-2);font-size:.9375rem}
 .catch p{display:grid;gap:2px}
 .catch .src2{font-size:.8125rem;color:var(--muted)}
@@ -295,7 +311,7 @@ body{overflow:hidden}
 .acard .s{display:flex;align-items:center;gap:10px;font-size:1.0625rem;font-weight:600}
 .acard .s .gl{width:1.625rem;height:1.625rem;border-width:2px}
 .acard .s .gl svg{width:.85rem;height:.85rem}
-.acard .w{font-size:.9063rem}
+.acard .w{font-size:.9375rem}
 .acard .c{font-size:.875rem;color:var(--accent-strong)}
 .acard.nd2{border-style:dashed}
 .acard .src2{font-size:.8125rem;color:var(--muted)}
@@ -303,7 +319,7 @@ body{overflow:hidden}
 .blk h3{font-size:.9375rem;font-weight:600}
 .blk p{font-size:.9375rem}
 .blk p b{font-weight:600}
-.blk .small{font-size:.8438rem}
+.blk .small{font-size:.875rem}
 .tl{display:grid;gap:10px;padding:16px;border-radius:14px;background:var(--panel-2)}
 .tl ol{list-style:none;margin:0;padding:0;display:grid;gap:0}
 .tl li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;font-size:.875rem;padding:3px 0}
@@ -325,7 +341,7 @@ body{overflow:hidden}
 .hsub b{color:var(--ink);font-weight:600}
 .page{display:grid;gap:22px;align-content:start}
 .page h2.q2{font-size:1.5rem;line-height:1.2;font-weight:600;letter-spacing:-.025em;text-wrap:balance}
-.intro{font-size:.9688rem;max-width:62ch}
+.intro{font-size:.9375rem;max-width:62ch}
 .srcs{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8125rem}
 .srcs a{color:var(--brand)}
 .lot .foot{margin-top:4px}
@@ -338,7 +354,7 @@ body{overflow:hidden}
   .search input{background:var(--panel-2);box-shadow:none;border-radius:12px}
   .lot{position:static;transform:none;transition:none;border-radius:0;box-shadow:none;flex:1 1 auto;min-height:0;padding:22px 28px 24px max(28px,env(safe-area-inset-left,0px));gap:18px;background:transparent}
   .bs{display:contents}
-  .grab,.ph{display:none!important}
+  .grab,.ph,.phd{display:none!important}
   .tools{top:16px;left:auto;right:var(--gxr)}
   #modeSeg{flex:none}
   .icob .lbl{display:inline}
@@ -361,7 +377,7 @@ body{overflow:hidden}
         <div class="results" id="results" role="listbox" hidden></div>
       </div>
     </div>
-    <div class="bs" id="bs"><button type="button" class="grab" id="grab" aria-expanded="false" aria-label="Drag up or down to resize, or tap to open"><span></span></button><div class="lot" id="lot" aria-live="polite"></div></div>
+    <div class="bs" id="bs"><button type="button" class="grab" id="grab" aria-expanded="false" aria-label="Drag up or down to resize, or tap to open"><span></span></button><div class="phd" id="phd"></div><div class="lot" id="lot" aria-live="polite"></div></div>
   </div>
 
   <div class="tools" id="tools">
@@ -390,7 +406,7 @@ body{overflow:hidden}
         <div class="row2 lg"><h3 id="legendTitle2">What the dots mean</h3><div class="legend" id="legend2"></div><p class="small" id="caption2">The orange block is the most an owner could build. Nothing is built unless an owner chooses to.</p></div>
       </div>
     </div>
-    <button class="icob" type="button" data-open="gaps" aria-label="What is real and what is still missing"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.6"/><path d="M7.7 7.6a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.5"/><circle cx="10" cy="14.4" r=".4" fill="currentColor"/></svg></button>
+    <button class="icob" type="button" data-open="gaps" aria-label="What is real and what is still missing" title="What is real and what is still missing"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.6"/><path d="M7.7 7.6a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.5"/><circle cx="10" cy="14.4" r=".4" fill="currentColor"/></svg></button>
   </div>
 
   <div class="legendbox" id="legendbox"><h2 class="lgh" id="legendTitle">What the dots mean</h2><div class="legend" id="legend"></div><span class="small" id="caption">The orange block is the most an owner could build. Nothing is built unless an owner chooses to.</span></div>
@@ -431,6 +447,7 @@ var FEATURED=TOWN.featured;
 (function(){
   var D=document;
   D.getElementById('draftPill').innerHTML=esc0(TOWN.draft.name)+' &middot; '+esc0(TOWN.draft.date);
+  D.getElementById('phd').innerHTML='<span><b>z&#333;na</b> &middot; '+esc0(TOWN.draft.name)+', '+esc0(TOWN.draft.date)+' &middot; a draft, not law</span><details class="mk"><summary>Map key</summary><div class="legend" id="legend3"></div></details>';
   D.getElementById('map').setAttribute('aria-label',TOWN.mapLabel);
   D.getElementById('aboutRows').innerHTML=TOWN.about.rows.map(function(r){return '<div class="row"><span class="st '+r[0]+'">'+esc0(r[1])+'</span><span>'+r[2]+'</span></div>';}).join('');
   D.getElementById('aboutSrc').innerHTML=TOWN.about.sources.map(function(s){return '<li><a href="'+esc0(s[0])+'" target="_blank" rel="noopener">'+esc0(s[1])+'</a>'+(s[2]?' '+esc0(s[2]):'')+'</li>';}).join('');
@@ -580,8 +597,8 @@ function renderLegend(){
     ttl=LEGT[state.mode];
     h=state.mode==='change'?XCLS.map(function(c){return '<span><i class="'+c[0]+'" style="background:var(--x-'+c[0]+')"></i>'+esc(c[1])+'</span>';}).join(''):CLASSES.map(function(c){return '<span><i style="background:var(--c-'+c[0]+')"></i>'+esc(c[1])+'</span>';}).join('');
   }
-  $('legend').innerHTML=h;$('legend2').innerHTML=h;
-  $('legendTitle').textContent=ttl;$('legendTitle2').textContent=ttl;
+  $('legend').innerHTML=h;$('legend2').innerHTML=h;if($('legend3'))$('legend3').innerHTML=h;
+  $('legendTitle').textContent=ttl;$('legendTitle2').textContent=ttl;capShow();
   Array.prototype.forEach.call(document.querySelectorAll('[data-mode]'),function(b){b.setAttribute('aria-pressed',String(!state.hl&&b.getAttribute('data-mode')===state.mode));});
 }
 function renderSection(pr,cr,dr){
@@ -686,9 +703,10 @@ function homeHtml(){
     +'<p>'+Math.abs(md)+' ft is '+sizeCue(md)+'. A smaller set changes much more: <b>'+fmt(c.up)+' lots</b> rise more than 10 ft and <b>'+fmt(c.down)+'</b> go lower.</p>'
     +'<div class="sbar" role="img" aria-label="'+rows.map(function(r){return fmt(r[1])+' '+lab[r[0]];}).join(', ')+'">'+rows.map(function(r){return '<span style="flex:'+r[1]+';background:var(--x-'+r[0]+')"></span>';}).join('')+'</div>'
     +'<div class="hrows">'+rows.map(function(r){return '<div class="hrow"><i style="background:var(--x-'+r[0]+')"></i><span>'+esc(lab[r[0]])+'</span><b>'+fmt(r[1])+'</b></div>';}).join('')+'</div></div>';
-  h+='<div class="sec2"><h3 class="lab">What\'s happening for you?</h3><div class="evs">'+EVENTS.map(function(e){return '<button type="button" class="ev" data-ev="'+e.k+'">'+esc(e.t)+'</button>';}).join('')+'</div></div>';
+  function evBtn(e){return '<button type="button" class="ev" data-ev="'+e.k+'">'+esc(e.t)+'</button>';}
+  h+='<div class="sec2"><h3 class="lab">What\'s happening for you?</h3><div class="evs">'+EVENTS.slice(0,4).map(evBtn).join('')+'</div>'
+    +(EVENTS.length>4||FEATURED.length?'<details class="mored"><summary class="more">More situations and example places</summary>'+(EVENTS.length>4?'<div class="evs">'+EVENTS.slice(4).map(evBtn).join('')+'</div>':'')+(FEATURED.length?'<div class="qchips">'+FEATURED.map(function(f){return '<button type="button" class="chipb" data-id="'+f.id+'">'+esc(f.short)+'</button>';}).join('')+'</div>':'')+'</details>':'')+'</div>';
   h+='<div class="sec2"><h3 class="lab">Where can I</h3><div class="wrows">'+WHERE.map(function(u){var s=useStats(u);return '<button type="button" class="wrow" data-ask="'+u+'"><span>'+esc(USEQ[u][0])+'</span><em>'+fmt(s.P)+' lots</em>'+ARROW+'</button>';}).join('')+'</div></div>';
-  h+='<div class="sec2"><h3 class="lab">Example places</h3><div class="qchips">'+FEATURED.map(function(f){return '<button type="button" class="chipb" data-id="'+f.id+'">'+esc(f.short)+'</button>';}).join('')+'</div></div>';
   var C=TOWN.comment;
   h+='<div class="tl"><h3 class="lab">Where the draft is</h3><ol>'
     +TOWN.timeline.map(function(x){return '<li'+(x.s?' class="'+x.s+'"':'')+'><i></i><div><b>'+esc(x.t)+'</b><br><span>'+esc(x.d)+'</span></div></li>';}).join('')+'</ol>'
@@ -704,11 +722,13 @@ function askHtml(){
   h+='<div class="hero"><span class="lab">'+(ev?esc(ev.t):'Where can I')+'</span><h2 class="q2">'+esc(USEQ[u][0])+'</h2>'+'</div>';
   h+='<div class="hero" style="margin-top:-12px"><div class="big">'+fmt(s.P)+'<small>lots</small></div><p class="hsub">where the draft lets you '+esc(USEQ[u][1])+' with a staff permit.'+(later?' <b>'+fmt(later)+' more</b> could, after a public hearing.':'')+'</p>'+(ev&&ev.intro?'<p class="intro">'+esc(ev.intro)+'</p>':'')
     +'<div class="sbar" aria-hidden="true"><span style="flex:'+s.P+';background:var(--brand)"></span><span style="flex:'+later+';background:var(--ask-lite)"></span><span style="flex:'+(s.no+s.nd)+';background:var(--dot-dim)"></span></div></div>';
+  if(CATCH[u])h+='<div class="catch"><span class="lab">The catch</span>'+CATCH[u].map(function(c){return '<p><span>'+esc(c[0])+'</span><span class="src2">'+src(c[1])+'</span></p>';}).join('')+'</div>';
+  h+='<p class="yours">These are borough-wide counts. <b>Search your address above</b> to see the answer for your lot.</p>';
   var R=[['may',esc(DEC.P.who),esc(DEC.P.ladder),s.P],['ask',esc(DEC.S.who),esc(DEC.S.ladder),s.S],['ask',esc(DEC.C.who),esc(DEC.C.ladder),s.C],['no','Not listed','The draft does not list it for these districts.',s.no]];
   h+='<div class="sec2"><h3 class="lab">Who says yes</h3><div class="ladder">'+R.filter(function(r,i){return r[3]>0||i===0||i===3;}).map(function(r){return '<div class="rung '+r[0]+'"><span class="gl" aria-hidden="true">'+GLYPH[r[0]]+'</span><div><b>'+r[1]+'</b><span>'+r[2]+'</span></div><em>'+fmt(r[3])+'</em></div>';}).join('')+'</div>'+(s.nd?'<span class="small">'+fmt(s.nd)+' lots have no draft district in our data.</span>':'')+'</div>';
-  if(s.rows.length)h+='<div class="sec2"><h3 class="lab">Districts</h3><div class="dlist">'+s.rows.map(function(r){return '<div class="drow"><i style="background:'+(r.v==='P'?'var(--brand)':'var(--ask-lite)')+'"></i><span>'+esc(r.name)+'<small>'+(r.v==='P'?'permit':'hearing')+'</small></span><b>'+fmt(r.n)+'</b></div>';}).join('')+'</div></div>';
+  function drow(r){return '<div class="drow"><i style="background:'+(r.v==='P'?'var(--brand)':'var(--ask-lite)')+'"></i><span>'+esc(r.name)+'<small>'+(r.v==='P'?'permit':'hearing')+'</small></span><b>'+fmt(r.n)+'</b></div>';}
+  if(s.rows.length)h+='<div class="sec2"><h3 class="lab">Districts</h3><div class="dlist">'+s.rows.slice(0,3).map(drow).join('')+'</div>'+(s.rows.length>3?'<details class="mored"><summary class="more">Show all '+s.rows.length+' districts</summary><div class="dlist">'+s.rows.slice(3).map(drow).join('')+'</div></details>':'')+'</div>';
   h+='<div class="sec2"><h3 class="lab">Ask something else</h3><div class="qchips">'+Object.keys(USEQ).map(function(k){return '<button type="button" class="chipb" data-ask="'+k+'" aria-pressed="'+(k===u)+'">'+esc(USEQ[k][0])+'</button>';}).join('')+'</div></div>';
-  if(CATCH[u])h+='<div class="catch"><span class="lab">The catch</span>'+CATCH[u].map(function(c){return '<p><span>'+esc(c[0])+'</span><span class="src2">'+src(c[1])+'</span></p>';}).join('')+'</div>';
   h+=NOTZ+'<p class="small">Tap any lot on the map to see its own answer.</p>';
   return h+FOOT+'</div>';
 }
@@ -735,6 +755,7 @@ function lotHtml(){
   h+='<div class="ttl"><div class="row1"><h1>'+esc(title)+'</h1><span class="dpill ph">Draft &middot; '+esc(TOWN.draft.date)+'</span></div><div class="meta"><span><b>'+esc(pr.draft_name||'No draft zone found')+'</b> in the draft</span>'+chip(pr.draft_name?'p':'n')+(likely?'<span class="dash" title="'+esc(TOWN.text.likelyTip)+'">Likely match</span>':'')+(stand?'<span class="dash" title="A stand-in lot, not the real site.">Stand-in</span>':'')+'</div></div>';
   if(b!=null){
     var max=Math.max(a||0,m||0,b),d=a!=null?b-a:null;
+    h+='<p class="verdict">'+(a==null?'The draft height limit is <b>'+b+' ft</b>.':d<0?'The height limit drops from <b>'+a+' ft to '+b+' ft</b>.':d>0?'The height limit rises from <b>'+a+' ft to '+b+' ft</b>.':'The height limit stays at <b>'+b+' ft</b>.')+(m>b?' Up to '+m+' ft would be possible with incentives.':'')+'</p>';
     h+='<div class="hb"><span class="lab">Height limit in the draft</span><div class="v2"><span class="n">'+b+'<small> ft</small></span>'+(d?'<span class="delta'+(d<0?' down':'')+'">'+(d>0?'+':'')+d+' ft</span>':'')+'</div>'
       +'<p class="small">'+(a==null?'Today\'s limit is not loaded.':(d?'Today '+a+' ft. '+Math.abs(d)+' ft is '+sizeCue(d)+'.':'Same as today, '+a+' ft.'))+'</p>'
       +'<div class="bars" role="img" aria-label="'+(a!=null?'Today '+a+' feet. ':'')+'Draft '+b+' feet'+(m>b?', up to '+m+' feet with incentives':'')+'.">'
@@ -787,7 +808,15 @@ function render(){
   document.title='zōna';
 }
 function top0(){$('lot').scrollTop=0;if(!DESK.matches&&$('app').getAttribute('data-sheet')==='open')setSheet('peek');}
-function refresh(){render();syncMap();renderLegend();}
+function hashOf(){return state.page==='lot'&&state.sel?'lot='+encodeURIComponent(state.sel):state.page==='ask'&&state.hl?'ask='+state.hl+(state.ev?'&ev='+state.ev:''):state.page==='event'&&state.ev?'ev='+state.ev:'';}
+function writeHash(){try{var h=hashOf();history.replaceState(null,'',location.pathname+location.search+(h?'#'+h:''));}catch(e){}}
+function readHash(){
+  var q={};location.hash.replace(/^#/,'').split('&').forEach(function(kv){var i=kv.indexOf('=');if(i>0)q[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1));});
+  if(q.lot&&byId[q.lot])select(q.lot,true);
+  else if(q.ask&&USEQ[q.ask])goAsk(q.ask,q.ev&&evOf(q.ev)?q.ev:null);
+  else if(q.ev&&evOf(q.ev))goEvent(q.ev);
+}
+function refresh(){render();syncMap();renderLegend();writeHash();}
 function centroid(geom){var ring=geom.type==='Polygon'?geom.coordinates[0]:geom.coordinates[0][0];var x=0,y=0;ring.forEach(function(c){x+=c[0];y+=c[1];});return [x/ring.length,y/ring.length];}
 function setSheet(s){
   $('app').setAttribute('data-sheet',s);
@@ -806,10 +835,11 @@ function select(id,fly){
 }
 function goBack(){var to=state.prev;state.sel=null;if(to==='ask'&&state.hl){state.page='ask';refresh();top0();}else if(to==='event'&&state.ev){state.page='event';refresh();top0();}else goHome(false);}
 function streetCam(){var c=state.sel?centroid(byId[state.sel].geometry):map.getCenter().toArray();return {center:c,zoom:18.2,pitch:76,bearing:map.getBearing(),duration:dur(900)};}
+function capShow(){var h=state.view==='2d'||!state.sel;$('caption').hidden=h;$('caption2').hidden=h;}
 function setView(v){
   state.view=v;
   Array.prototype.forEach.call(document.querySelectorAll('[data-view]'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-view')===v));});
-  $('caption').hidden=v==='2d';$('caption2').hidden=v==='2d';
+  capShow();
   if(mapReady){map.easeTo(v==='street'?streetCam():v==='3d'?{pitch:58,bearing:-28,duration:dur(800)}:{pitch:0,bearing:0,duration:dur(800)});syncMap();}
 }
 function setMode(m){
@@ -836,7 +866,7 @@ function closeModal(){$('modal').hidden=true;$('app').inert=false;if(opener&&ope
 var hits=[],cur=-1;
 function showResults(list,empty){
   hits=list;cur=-1;var r=$('results');
-  if(!list.length&&empty){r.innerHTML='<div class="none" role="status">No address or parcel number matches. Try fewer words.</div>';r.hidden=false;$('q').setAttribute('aria-expanded','false');return;}
+  if(!list.length&&empty){r.innerHTML='<div class="none" role="status">No address or parcel number matches. Try just the number and street, like 222 E College Ave. This map covers '+esc(TOWN.place)+' only.</div>';r.hidden=false;$('q').setAttribute('aria-expanded','false');return;}
   if(!list.length){r.hidden=true;$('q').setAttribute('aria-expanded','false');return;}
   r.innerHTML=list.map(function(h,i){return '<button type="button" role="option" id="opt'+i+'" data-id="'+h.id+'"><span class="t">'+esc(h.street||'Parcel '+short(h.id))+'</span><span class="s">'+esc(short(h.id))+' · '+h.acres+' ac</span></button>';}).join('');
   r.hidden=false;$('q').setAttribute('aria-expanded','true');
@@ -872,6 +902,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
   map=new maplibregl.Map({container:'map',style:{version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':css('--map-bg')}}]},center:[(x0+x1)/2,(y0+y1)/2],zoom:14.4,pitch:48,bearing:-20,maxPitch:80,attributionControl:false,dragRotate:true});
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
   map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:TOWN.mapCreditsHtml}),'bottom-right');
+  if(!DESK.matches)setTimeout(function(){var a=document.querySelector('.maplibregl-ctrl-attrib');if(a){a.classList.remove('maplibregl-compact-show');a.removeAttribute('open');}},0);
   map.on('load',function(){
     map.addSource('parcels',{type:'geojson',data:r[0]});
     map.addSource('dots',{type:'geojson',data:dots});
@@ -889,7 +920,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
     map.addLayer({id:'ask-fill',type:'fill',source:'parcels',layout:{visibility:'none'},filter:['==',['get','id'],''],paint:{'fill-color':css('--brand'),'fill-opacity':0.62}},'bld');
     map.addLayer({id:'ask-line',type:'line',source:'parcels',layout:{visibility:'none'},filter:['==',['get','id'],''],paint:{'line-color':css('--brand'),'line-width':1.2,'line-dasharray':[2,1.5]}},'bld');
     mapReady=true;
-    syncMap();retheme();fitHome(0);
+    syncMap();retheme();fitHome(0);readHash();
     $('loading').hidden=true;
     map.on('click','parcels-fill',function(e){var f=e.features&&e.features[0];if(f)select(f.properties.id,false);});
     map.on('mousemove','parcels-fill',function(e){

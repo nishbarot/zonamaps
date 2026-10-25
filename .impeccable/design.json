@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-25T00:00:00Z",
+  "title": "Design System: zōna",
+  "extensions": {
+    "colorMeta": {
+      "deep-teal": {"role": "primary", "displayName": "Deep Teal", "canonical": "#12585C", "tonalRamp": ["#0A3436","#0D4447","#12585C","#3F7C80","#6FA0A3","#A3C4C6","#CFE0E1","#E1EEED"]},
+      "change-orange": {"role": "secondary", "displayName": "Change Orange", "canonical": "#C85400", "tonalRamp": ["#5C2700","#7A3400","#A34200","#C85400","#E26103","#F2A673","#FBE1CF","#FDF1E8"]},
+      "navy-ink": {"role": "neutral", "displayName": "Navy Ink", "canonical": "#0E2340", "tonalRamp": ["#0E2340","#2A3E58","#56606B","#857F73","#B5B0A6","#D9D4CA","#E2DDD3","#F2EFE9"]}
+    },
+    "typographyMeta": {
+      "display": {"displayName": "Display", "purpose": "The one headline number per view."},
+      "label": {"displayName": "Label", "purpose": "Tiny uppercase mono category labels."}
+    },
+    "shadows": [
+      {"name": "float", "value": "0 10px 30px rgba(14,35,64,.12), 0 2px 6px rgba(14,35,64,.06)", "purpose": "Floating search, controls, popovers."},
+      {"name": "sheet-lift", "value": "0 -8px 28px rgba(14,35,64,.16)", "purpose": "Top edge of the bottom sheet."}
+    ],
+    "motion": [
+      {"name": "sheet-settle", "value": "cubic-bezier(.2,.8,.2,1) 320ms", "purpose": "Bottom sheet height changes."}
+    ],
+    "breakpoints": [
+      {"name": "desktop-card", "value": "900px wide and 620px tall"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Chip", "kind": "chip", "refersTo": "chip",
+      "description": "Question and filter chip; selected state is solid teal.",
+      "html": "<button class=\"ds-chip\">Where can I…</button>",
+      "css": ".ds-chip{min-height:44px;padding:0 16px;border:1.5px solid #857F73;background:#FCFCFA;color:#0E2340;border-radius:999px;font:500 .875rem Geist,system-ui,sans-serif}.ds-chip:hover{border-color:#0E2340}.ds-chip:focus-visible{outline:3px solid #12585C;outline-offset:2px}"
+    },
+    {
+      "name": "Delta badge", "kind": "custom", "refersTo": "delta-badge",
+      "description": "Marks a draft increase.",
+      "html": "<span class=\"ds-delta\">+3 ft</span>",
+      "css": ".ds-delta{padding:1px 8px;border-radius:999px;font:600 .8125rem Geist,system-ui,sans-serif;background:#FBE1CF;color:#A34200}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Town Hall Counter",
+    "overview": "A knowledgeable clerk who slides the one page you need across warm paper and says it in plain words. Calm type, rationed color, every claim next to its source.",
+    "keyCharacteristics": ["Warm paper ground, white panel, navy text.", "Teal marks everything operable or selected.", "Orange only where the draft changes something.", "Status shown by glyph and outline style, never color alone."],
+    "rules": [
+      {"name": "The Orange Means Change Rule", "body": "Orange never decorates. If a thing is orange, the draft changes it.", "section": "colors"},
+      {"name": "The Never Color Alone Rule", "body": "Answer states differ by glyph and line style as well as hue.", "section": "colors"},
+      {"name": "The Float Only Rule", "body": "Shadows mean this sits above the map.", "section": "elevation"}
+    ],
+    "dos": ["Do keep orange for changes only.", "Do pair every status color with a glyph and line style."],
+    "donts": ["Don't open in dark mode by default.", "Don't introduce a fifth answer state."]
+  }
+}

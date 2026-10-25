@@ -18,7 +18,7 @@ paint=sub(paint,"function dotColor(){\n","function dotColor(){\n  if(state.hl)re
 paint=sub(paint,"var f=['==',['get','id'],state.sel];","var f=['==',['get','id'],state.sel||''];")
 paint=sub(paint,"var d3=state.view==='3d',","var d3=state.view!=='2d',")
 paint=sub(paint,"map.setPaintProperty('bld','fill-extrusion-height',d3?4:0);\n}","map.setPaintProperty('bld','fill-extrusion-height',d3?4:0);\n  syncExtra();\n}")
-search=L(644,668).replace("if(!list.length){r.hidden=true;","if(!list.length&&empty){r.innerHTML='<div class=\"none\" role=\"status\">No address or parcel number matches. Try fewer words.</div>';r.hidden=false;$('q').setAttribute('aria-expanded','false');return;}\n  if(!list.length){r.hidden=true;").replace('function showResults(list){','function showResults(list,empty){').replace('  showResults(out);','  showResults(out,true);')
+search=L(644,668).replace("if(!list.length){r.hidden=true;","if(!list.length&&empty){r.innerHTML='<div class=\"none\" role=\"status\">No address or parcel number matches. Try just the number and street, like 222 E College Ave. This map covers '+esc(TOWN.place)+' only.</div>';r.hidden=false;$('q').setAttribute('aria-expanded','false');return;}\n  if(!list.length){r.hidden=true;").replace('function showResults(list){','function showResults(list,empty){').replace('  showResults(out);','  showResults(out,true);')
 rep={'/*JS_CONST*/':const,'/*JS_HELPERS*/':L(375,383),
 '/*JS_DOTS*/':L(385,423),'/*JS_PAINT*/':paint,'/*JS_SECTION*/':section,'/*JS_ROWS*/':L(502,524),'/*JS_PHRASE*/':L(525,530),'/*JS_SEARCH*/':search,'/*JS_LAYERS*/':layers}
 for k,v in rep.items(): t=sub(t,k,v)
