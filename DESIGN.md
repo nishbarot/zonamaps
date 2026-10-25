@@ -28,7 +28,7 @@ typography:
     letterSpacing: "-0.025em"
   display:
     fontFamily: "Geist, Helvetica Neue, Arial, system-ui, sans-serif"
-    fontSize: "clamp(4.25rem, 9vw, 6rem)"
+    fontSize: "clamp(3.5rem, 6vw, 4.5rem)"
     fontWeight: 300
     lineHeight: 0.95
     letterSpacing: "-0.055em"
@@ -77,7 +77,7 @@ components:
 
 A knowledgeable clerk who slides the one page you need across warm paper and says it in plain words. The map is the room, the panel is the counter. Nothing is dressed up: type is calm, color is rationed, and every claim sits next to the thing that proves it.
 
-Density is moderate and phone-first: the map fills the screen, search and controls float on it, and the lot or overview lives in a draggable bottom sheet. Text is never small by default (14px minimum at normal size) and grows with the A+ control. Light is the default on every device; a dark palette exists but is opt-in only.
+Density is moderate and phone-first: the map fills the screen, search and controls float on it, and the lot or overview lives in a draggable bottom sheet. Text is never small by default (13px minimum at normal size) and grows with the A+ control. Light is the default on every device; a dark palette exists but is opt-in only.
 
 **Key Characteristics:**
 - Warm paper ground, white panel, navy text.
@@ -116,7 +116,7 @@ A restrained warm-neutral palette with one operating color (teal) and one signal
 **Character:** A neutral grotesque that stays out of the way, with mono used only for tiny uppercase labels and addresses.
 
 ### Hierarchy
-- **Display** (300, clamp(4.25rem,9vw,6rem), 0.95): the one headline number, such as "+3 ft".
+- **Display** (300, clamp(3.5rem,6vw,4.5rem), 0.95): the one headline number, such as "+3 ft".
 - **Headline** (600, 1.5rem, 1.2): lot name and page questions.
 - **Title** (600, 1rem): section headings inside panels.
 - **Body** (400, 1rem, 1.5; prose capped near 62–70ch): answers and explanations.
@@ -170,7 +170,7 @@ Soft but not toy-like. Controls and cards use 12–14px corners, the bottom shee
 ### Do:
 - **Do** keep orange for changes only.
 - **Do** pair every status color with a glyph and line style.
-- **Do** keep body text at least 14px and tap targets at least 44px.
+- **Do** keep body text at least 13px and tap targets at least 44px.
 - **Do** cite the source section next to an answer.
 
 ### Don't:

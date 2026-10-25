@@ -90,7 +90,6 @@ var TOWN={
   footer:{
     statusHtml:'<b>Second draft from June 2026, still under review.</b> A third draft is expected, and the Council public hearing is tentatively set for early 2027.',
     legal:'This is not legal advice. The Borough Planning and Zoning Department decides what applies to a lot.',
-    credit:'Built by Nish Barot. A project for discussion, not yet shared with the Borough.'
   },
 
   // Short phrases used on the lot page.

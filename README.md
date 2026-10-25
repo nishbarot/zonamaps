@@ -63,8 +63,7 @@ The page loads [MapLibre GL JS](https://maplibre.org) 4.7.1 from cdnjs. A copy i
 app/
   town.js           everything about one town: names, links, timeline, notes
   simple.tpl.html   the explorer: layout, styles, page logic (edit this)
-  page.src.html     older console page; shared pieces are copied from it
-  build_simple.py   builds simple.html from the two files above
+  build_simple.py   builds simple.html (adds the MapLibre stylesheet to the page above)
   simple.html       the built page that gets served (don't edit by hand)
   data/
     parcels.json    lots: shape, today's and draft district, height limits
@@ -82,10 +81,8 @@ tools/
 - **Rebuild after you edit:**
 
   ```sh
-  cd app && python3 build_simple.py   # writes simple.src.html and simple.html
+  cd app && python3 build_simple.py   # writes simple.html
   ```
-
-  `build_simple.py` copies some shared code out of `page.src.html` by line range. If you move code in that file, update the line numbers, and the script's checks will tell you if a piece is missing.
 
 ## Set it up for your town
 
