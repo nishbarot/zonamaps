@@ -27,7 +27,7 @@ A town publishes a zoning draft as hundreds of pages of PDFs, use tables and a d
 - Every answer is one of four: *Yes* (staff issue a permit), *Yes, after a hearing*, *No*, or *Not decided yet*. Confirmed by the user as non-negotiable.
 - Address or parcel search explains any lot: today's and draft height limits, a block summary, what is possible there.
 - Points to the draft timeline and how to send a public comment.
-- Works on phones with a draggable bottom sheet. Light mode is the default on every device; dark mode only when explicitly set.
+- Works on phones with a draggable bottom sheet. Light mode only, on every device.
 - Place-specific facts live in `app/town.js` and `app/data/`.
 - Data terms, disclaimers and credits are in `DATA.md`. The draft districts are traced and approximate, and the map is not the official map or the Borough's GIS.
 - Not decided: other copy or visual rules, such as whether orange is reserved for change. The user did not mark these binding.

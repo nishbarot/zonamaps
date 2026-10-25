@@ -1,7 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>z&#333;na</title>
-<script>/* Light by default on every device; dark only when data-theme="dark" is set. */try{var r=document.documentElement;if(!r.hasAttribute("data-theme"))r.setAttribute("data-theme","light");}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
@@ -23,28 +22,6 @@
   --font-mono:'Geist Mono',ui-monospace,Menlo,Consolas,monospace;
   --gx:max(16px,env(safe-area-inset-left,0px)); --gxr:max(16px,env(safe-area-inset-right,0px));
   color-scheme:light;
-}
-@media not all{
-  :root:not([data-theme="light"]){
-    --bg:#101418; --panel:#171C22; --panel-2:#1E252C; --ink:#ECE9E2; --muted:#A3ABB3; --line:#2C343C; --line-ctl:#6B7681; --hatch:#252C33;
-    --accent:#FF8A4C; --accent-strong:#FFA06B; --accent-fill:#E26103; --on-accent:#1A0E06; --accent-soft:#3D2414;
-    --brand:#6FB7B0; --on-brand:#0B1517; --brand-soft:#1B3231; --card-shadow:0 12px 32px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3); --focus:#6FB7B0; --scrim:rgba(4,8,12,.62); --shadow:rgba(0,0,0,.4);
-    --map-bg:#101418; --bld:#D9D6CE; --env-today:#6FB7B0; --env-draft:#FF8A4C; --sel:#ECE9E2;
-    --c-res-low:#46605F; --c-res-mid:#557472; --c-res-high:#658886; --c-office:#739794; --c-commercial:#86A9A6; --c-mixed:#9CBDB9; --c-downtown:#BCD8D4;
-    --c-industrial:#4A5452; --c-public:#3E4446; --c-park:#32383A; --c-univ:#4E7B76; --c-other:#343A3C;
-    --x-up:#FF8A4C; --x-inc:#A8501F; --x-down:#6FB7B0; --x-same:#474F52; --x-na:#2C3132; --dot-dim:#3A4248; --ask-lite:#2F5E5A;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-    --bg:#101418; --panel:#171C22; --panel-2:#1E252C; --ink:#ECE9E2; --muted:#A3ABB3; --line:#2C343C; --line-ctl:#6B7681; --hatch:#252C33;
-    --accent:#FF8A4C; --accent-strong:#FFA06B; --accent-fill:#E26103; --on-accent:#1A0E06; --accent-soft:#3D2414;
-    --brand:#6FB7B0; --on-brand:#0B1517; --brand-soft:#1B3231; --card-shadow:0 12px 32px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.3); --focus:#6FB7B0; --scrim:rgba(4,8,12,.62); --shadow:rgba(0,0,0,.4);
-    --map-bg:#101418; --bld:#D9D6CE; --env-today:#6FB7B0; --env-draft:#FF8A4C; --sel:#ECE9E2;
-    --c-res-low:#46605F; --c-res-mid:#557472; --c-res-high:#658886; --c-office:#739794; --c-commercial:#86A9A6; --c-mixed:#9CBDB9; --c-downtown:#BCD8D4;
-    --c-industrial:#4A5452; --c-public:#3E4446; --c-park:#32383A; --c-univ:#4E7B76; --c-other:#343A3C;
-    --x-up:#FF8A4C; --x-inc:#A8501F; --x-down:#6FB7B0; --x-same:#474F52; --x-na:#2C3132; --dot-dim:#3A4248; --ask-lite:#2F5E5A;
-    color-scheme:dark;
 }
 html{font-size:calc(100% * var(--ts,1))}
 :root{--i-x:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");--i-plus:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2.5v11M2.5 8h11' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");--i-minus:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 8h11' stroke='%23000' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E")}
@@ -222,8 +199,6 @@ body{overflow:hidden}
 .maplibregl-ctrl-group{background:var(--panel)!important;border:0;box-shadow:var(--card-shadow)!important;border-radius:14px!important;overflow:hidden}
 .maplibregl-ctrl-group button{width:44px!important;height:44px!important}
 .maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
-:root[data-theme="dark"] .maplibregl-ctrl-icon{filter:invert(1)}
-@media not all{:root:not([data-theme="light"]) .maplibregl-ctrl-icon{filter:invert(1)}}
 .maplibregl-ctrl-attrib{background:var(--panel)!important;color:var(--muted)!important;font-size:11px!important;border-radius:10px!important}
 .maplibregl-ctrl-attrib a{color:var(--muted)!important}
 
@@ -976,8 +951,6 @@ document.addEventListener('keydown',function(e){
 });
 window.addEventListener('resize',function(){setTimeout(pad,60);});
 try{DESK.addEventListener('change',function(){setTimeout(function(){if(mapReady){map.resize();pad();}},80);});}catch(e){}
-try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){setTimeout(retheme,50);});}catch(e){}
-try{new MutationObserver(function(){setTimeout(retheme,50);}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
 try{var t0=localStorage.getItem('zx-ts');if(t0==='big')setTs('big');}catch(e){}
 })();
 </script>

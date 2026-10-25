@@ -12,10 +12,7 @@ A plain-language 3D zoning map that any town, borough or city can run.
 [![Footprints: ODbL](https://img.shields.io/badge/footprints-ODbL-0E2340)](DATA.md)
 ![No build tools](https://img.shields.io/badge/install-none-C85400)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/overview-dark.jpg">
-  <img src="docs/overview.jpg" alt="zōna overview: a 3D map with lots colored by how much a zoning draft changes their height limit, and a side panel saying the typical change is +3 ft">
-</picture>
+<img src="docs/overview.jpg" alt="zōna overview: a 3D map with lots colored by how much a zoning draft changes their height limit, and a side panel saying the typical change is +3 ft">
 
 </div>
 
@@ -33,7 +30,7 @@ zōna starts from those questions, not from the ordinance's structure. It answer
 - **Says who decides.** Every answer is one of four: *Yes* (staff issue a permit), *Yes, after a hearing* (a hearing board or the governing body), *No*, or *Not decided yet*.
 - **Explains any lot.** Search an address or parcel number to see today's and the draft's height limits, a summary of the block, and what you could do there.
 - **Points to the process.** It gives the draft timeline and how to send a public comment.
-- **Works on phones.** The map comes with a bottom sheet you can drag to any height. Phones open in light mode.
+- **Works on phones.** The map comes with a bottom sheet you can drag to any height. 
 
 <table>
 <tr>
@@ -77,7 +74,7 @@ tools/
 ```
 
 - **No framework and no backend.** The page reads `town.js`, fetches four JSON files and draws them with MapLibre. Everything else, including counts, block summaries and answers, is computed in the browser.
-- **Colors are tokens.** Light and dark palettes sit at the top of `simple.tpl.html`. Orange only ever means "changes".
+- **Colors are tokens.** The palette sits at the top of `simple.tpl.html`. Orange only ever means "changes".
 - **Rebuild after you edit:**
 
   ```sh

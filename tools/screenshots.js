@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   async function pg(w,h,s,dpr){const p=await b.newPage({viewport:{width:w,height:h},colorScheme:s,deviceScaleFactor:dpr||1});
     p.on('console',m=>{if(m.type()==='error')errs.push(s+w+': '+m.text())});p.on('pageerror',e=>errs.push(s+w+' PAGEERROR '+e.message));
     await p.goto(''+BASE+'/simple.html');await p.waitForTimeout(8000);return p;}
-  for (const s of ['light','dark']){
+  for (const s of ['light']){
     const p=await pg(1440,900,s);
     await p.screenshot({path:`${out}/${s}-desk.jpg`,quality:80});
     await p.click('#viewBtn');await p.waitForTimeout(300);await p.screenshot({path:`${out}/${s}-view.jpg`,quality:80,clip:{x:900,y:0,width:540,height:420}});

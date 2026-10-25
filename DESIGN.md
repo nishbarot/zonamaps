@@ -77,7 +77,7 @@ components:
 
 A knowledgeable clerk who slides the one page you need across warm paper and says it in plain words. The map is the room, the panel is the counter. Nothing is dressed up: type is calm, color is rationed, and every claim sits next to the thing that proves it.
 
-Density is moderate and phone-first: the map fills the screen, search and controls float on it, and the lot or overview lives in a draggable bottom sheet. Text is never small by default (13px minimum at normal size) and grows with the A+ control. Light is the default on every device; a dark palette exists but is opt-in only.
+Density is moderate and phone-first: the map fills the screen, search and controls float on it, and the lot or overview lives in a draggable bottom sheet. Text is never small by default (13px minimum at normal size) and grows with the A+ control. Light only, on every device.
 
 **Key Characteristics:**
 - Warm paper ground, white panel, navy text.
@@ -174,7 +174,7 @@ Soft but not toy-like. Controls and cards use 12–14px corners, the bottom shee
 - **Do** cite the source section next to an answer.
 
 ### Don't:
-- **Don't** open in dark mode by default; dark is opt-in via `data-theme="dark"`.
+- **Don't** add a dark theme; zōna is light only.
 - **Don't** add shadows to cards inside the panel.
 - **Don't** introduce a fifth answer state beyond yes, hearing, no, not decided.
 - **Don't** add a second display-size number to a view.

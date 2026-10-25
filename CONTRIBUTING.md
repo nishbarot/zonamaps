@@ -17,7 +17,7 @@ You don't need to write any code.
 1. Fork the repo and create a branch.
 2. Edit `app/simple.tpl.html`, not `app/simple.html`.
 3. Rebuild: `cd app && python3 build_simple.py`
-4. Serve and check it: `python3 -m http.server 8000`, then open `http://localhost:8000/simple.html` at both laptop and phone widths, in light and dark.
+4. Serve and check it: `python3 -m http.server 8000`, then open `http://localhost:8000/simple.html` at both laptop and phone widths.
 5. Optional: take screenshots with Playwright: `PORT=8000 node tools/screenshots.js ./shots`
 6. Open a pull request saying what a reader sees before and after.
 
