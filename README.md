@@ -6,7 +6,7 @@
 
 A plain-language 3D zoning map that any town, borough or city can run.
 
-[**See the demo**](https://zona-zeta.vercel.app) · [Report a wrong answer](../../issues/new?template=correction.md) · [Data sources](DATA.md)
+[**See the demo**](https://zonamaps.vercel.app) · [Report a wrong answer](../../issues/new?template=correction.md) · [Data sources](DATA.md)
 
 [![Code: MIT](https://img.shields.io/badge/code-MIT-12585C)](LICENSE)
 [![Footprints: ODbL](https://img.shields.io/badge/footprints-ODbL-0E2340)](DATA.md)

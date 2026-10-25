@@ -36,7 +36,7 @@ A town publishes a zoning draft as hundreds of pages of PDFs, use tables and a d
 Name: zōna. MIT-licensed code, ODbL building footprints.
 
 ## Evidence on Hand
-Real sample data for one borough in `app/data/` (parcels, rules, addresses, building footprints), screenshots in `docs/`, and a live demo at https://zona-zeta.vercel.app. No testimonials or usage metrics exist; do not invent any.
+Real sample data for one borough in `app/data/` (parcels, rules, addresses, building footprints), screenshots in `docs/`, and a live demo at https://zonamaps.vercel.app. No testimonials or usage metrics exist; do not invent any.
 
 ## Product Principles
 1. Start from the resident's question, not the ordinance's structure.
