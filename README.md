@@ -61,6 +61,7 @@ The page loads [MapLibre GL JS](https://maplibre.org) 4.7.1 from cdnjs. A copy i
 
 ```
 app/
+  town.js           everything about one town: names, links, timeline, notes
   simple.tpl.html   the explorer: layout, styles, page logic (edit this)
   page.src.html     older console page; shared pieces are copied from it
   build_simple.py   builds simple.html from the two files above
@@ -76,7 +77,7 @@ tools/
   get_footprints.py cuts building footprints for your area from a statewide file
 ```
 
-- **No framework and no backend.** The page fetches four JSON files and draws them with MapLibre. Everything else, including counts, block summaries and answers, is computed in the browser.
+- **No framework and no backend.** The page reads `town.js`, fetches four JSON files and draws them with MapLibre. Everything else, including counts, block summaries and answers, is computed in the browser.
 - **Colors are tokens.** Light and dark palettes sit at the top of `simple.tpl.html`. Orange only ever means "changes".
 - **Rebuild after you edit:**
 
@@ -92,7 +93,7 @@ tools/
 2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking` and `incentives`.
 3. **Addresses.** Map parcel numbers to site addresses in `data/addresses.json`. Use parcel number and address only. Leave out owner names and sale data.
 4. **Footprints (optional).** Run `tools/get_footprints.py` on your state's file from [Microsoft's footprints](https://github.com/microsoft/USBuildingFootprints) and keep the ODbL credit.
-5. **Words and links.** Your town's questions, life events, timeline, comment email, source links, map credits and footer are constants in `simple.tpl.html` (`USEQ`, `EVENTS`, `CATCH`, `SRC`, `FOOT`, and the `customAttribution` line). Rewrite them for your ordinance and cite your own sections.
+5. **Town settings.** Everything about the place itself lives in `app/town.js`: its name, who decides (staff, hearing board, council), the draft's name and date, the timeline, the comment email, source links, notes, example places, the help panel and the map credits. Rewrite it for your ordinance and cite your own sections. No rebuild is needed.
 6. **Credit your sources** in your own `DATA.md`.
 
 If you set one up, open an issue and tell us about it.

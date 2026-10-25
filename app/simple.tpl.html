@@ -354,7 +354,7 @@ body{overflow:hidden}
 <div class="app" id="app" data-sheet="peek">
   <div class="card" id="cardbox">
     <div class="find" id="find">
-      <div class="top"><button type="button" class="logo" data-go="home" aria-label="z&#333;na, back to the overview"><i aria-hidden="true">z&#333;</i><b>z&#333;na</b></button><span class="dpill">Second draft &middot; June 2026</span></div>
+      <div class="top"><button type="button" class="logo" data-go="home" aria-label="z&#333;na, back to the overview"><i aria-hidden="true">z&#333;</i><b>z&#333;na</b></button><span class="dpill" id="draftPill"></span></div>
       <div class="search">
         <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5 14 14"/></svg>
         <input id="q" type="search" autocomplete="off" placeholder="Search your address or a parcel number" role="combobox" aria-expanded="false" aria-controls="results" aria-label="Search your address or a parcel number">
@@ -396,49 +396,53 @@ body{overflow:hidden}
   <div class="legendbox" id="legendbox"><h2 class="lgh" id="legendTitle">What the dots mean</h2><div class="legend" id="legend"></div><span class="small" id="caption">The orange block is the most an owner could build. Nothing is built unless an owner chooses to.</span></div>
 
   <div class="stage">
-    <div id="map" role="application" aria-label="Map of State College parcels shown as dots, with 3D buildings"></div>
+    <div id="map" role="application" aria-label="Map of lots shown as dots, with 3D buildings"></div>
     <div class="tip" id="tip" hidden></div>
     <div class="loading" id="loading">Loading the map</div>
   </div>
 </div>
 
-/*MODAL*/
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="sheet-h"><h2 id="mTitle">What is real and what is still missing</h2><button class="x" type="button" id="mClose">Close</button></div>
+    <div class="sheet-b">
+      <p class="small" style="padding-top:12px;max-width:68ch">Everything on the map comes from public sources. Gaps are listed so nobody mistakes a prototype for a finished tool.</p>
+      <h3 id="gaps">Status of each layer</h3>
+      <div id="aboutRows"></div>
+      <h3 id="sources">Sources</h3>
+      <ul class="src" id="aboutSrc"></ul>
+      <p class="foot" id="aboutFoot"></p>
+    </div>
+  </div>
+</div>
+
+<script src="town.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
 <script>
 (function(){
 'use strict';
 /*JS_CONST*/
+var FEATURED=TOWN.featured;
+(function(){
+  var D=document;
+  D.getElementById('draftPill').innerHTML=esc0(TOWN.draft.name)+' &middot; '+esc0(TOWN.draft.date);
+  D.getElementById('map').setAttribute('aria-label',TOWN.mapLabel);
+  D.getElementById('aboutRows').innerHTML=TOWN.about.rows.map(function(r){return '<div class="row"><span class="st '+r[0]+'">'+esc0(r[1])+'</span><span>'+r[2]+'</span></div>';}).join('');
+  D.getElementById('aboutSrc').innerHTML=TOWN.about.sources.map(function(s){return '<li><a href="'+esc0(s[0])+'" target="_blank" rel="noopener">'+esc0(s[1])+'</a>'+(s[2]?' '+esc0(s[2]):'')+'</li>';}).join('');
+  D.getElementById('aboutFoot').textContent=TOWN.about.foot;
+  function esc0(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+})();
 var QUESTIONS=[['apartments','Can I build an apartment building?',''],['adu','Can I add a small second home on my lot?','Called an accessory dwelling unit (ADU)'],['one_family','Can I build a single-family house?',''],['shops','Can I open a shop?',''],['restaurant','Can I open a restaurant?',''],['two_to_four','Can I build a duplex, triplex or fourplex?',''],['townhome','Can I build townhomes?',''],['drive_through','Can I add a drive-through?',''],['gas','Can I put up a gas station?',''],['hotel','Can I open a hotel or motel?','']];
 var NSHOW=5;
-var TIER={o:['From the ordinance','From the Borough\'s own layer or the ordinance text. Today\'s rules were read by hand and are still being checked.'],p:['Traced from a PDF','Read or traced from the Borough\'s PDFs, so approximate.'],n:['Not loaded','We do not have this yet.']};
+var TIER={o:['From the ordinance',TOWN.text.tierOfficial],p:['Traced from a PDF',TOWN.text.tierPdf],n:['Not loaded','We do not have this yet.']};
 function chip(t){return '<span class="tier '+t+'" title="'+esc(TIER[t][1])+'">'+TIER[t][0]+'</span>';}
-var SRC={
-  memo:['https://content.civicplus.com/api/assets/6618b070-48d8-4c11-87b7-7a8696507e48','Council memo, Sept 10, 2026'],
-  meet:['https://content.civicplus.com/api/assets/d9590d92-94c6-4bd9-b7e2-154dcb8ae2be','Borough meetings record, 2026'],
-  slides:['https://content.civicplus.com/api/assets/pa-statecollege/852e19a0-bddf-4b9d-9fc2-e77a94f27eb3/residentialppt-2025-07-17-final.pdf','Borough slides on homes'],
-  lic:['https://statecollegepa.us/218/Student-Home-License','Student home license'],
-  cu:['https://statecollegepa.us/201/Conditional-Use-Permit','Conditional use permits'],
-  zhb:['https://www.statecollegepa.us/518/Zoning-Hearing-Board','Zoning Hearing Board'],
-  zo:['https://statecollegepa.us/225/New-Zoning-Ordinance','New zoning ordinance page'],
-  code:['https://ecode360.com/32909719','Today\'s zoning ordinance']
-};
-function src(k){return '<a href="'+SRC[k][0]+'" target="_blank" rel="noopener">'+esc(SRC[k][1])+'</a>';}
+var SRC=TOWN.links;
+function src(k){if(!SRC[k])return esc(k);return '<a href="'+SRC[k][0]+'" target="_blank" rel="noopener">'+esc(SRC[k][1])+'</a>';}
 var USEQ={restaurant:['Open a restaurant','open a restaurant'],apartments:['Build apartments','build an apartment building'],adu:['Add a small second home','add a small second home'],shops:['Open a shop','open a shop'],two_to_four:['Build a duplex to fourplex','build a duplex, triplex or fourplex'],townhome:['Build townhomes','build townhomes'],one_family:['Build a house','build a single-family house'],hotel:['Open a hotel','open a hotel or motel']};
 var WHERE=['restaurant','apartments','adu','shops'];
-var CATCH={
-  adu:[['Under the draft, a new small second home cannot be rented to college students.','memo'],['Whether adding one raises your property tax assessment is not decided yet.','meet']],
-  two_to_four:[['Borough slides mention extra limits on students and short-term rentals for 3 and 4 home buildings in Residence 2. We have not found this in the draft text yet, so check the latest draft.','slides']],
-  restaurant:[['Turning a store into a restaurant can change how much parking you need. Check the draft parking table (Part E).','zo']]
-};
-var EVENTS=[
-  {k:'mom',t:'A parent is moving in with me',use:'adu',intro:'A small second home on your lot, like a backyard cottage or a basement apartment, is called an accessory dwelling unit (ADU). The draft allows them on most lots.'},
-  {k:'friends',t:'I want to rent with friends'},
-  {k:'homebiz',t:'I want to run a business from home'},
-  {k:'cafe',t:'I want to open a café or restaurant',use:'restaurant',intro:'Here is where the draft allows a restaurant with a staff permit, and where you would need a public hearing first.'},
-  {k:'ramp',t:'I need a ramp or an easier bathroom'},
-  {k:'nextdoor',t:'The house next door is for sale',use:'two_to_four',intro:'In the draft, most neighborhood lots could hold a duplex, triplex or fourplex. Nothing changes next door unless the owner chooses to build.'}
-];
+var CATCH=TOWN.catches;
+var EVENTS=TOWN.events;
 function evOf(k){for(var i=0;i<EVENTS.length;i++)if(EVENTS[i].k===k)return EVENTS[i];return null;}
 var EDGE={},STAT={},BLK={},BOF={},BOUNDS=null;
 var state={mode:'change',view:'3d',sel:null,page:'home',prev:'home',hl:null,ev:null,tab:'answers',all:false,layers:{dots:true,bld:true,env:true,lines:false}};
@@ -499,9 +503,9 @@ var GLYPH={may:ico('<path d="M4 9.4l3.2 3.1L14 5.6"/>'),ask:ico('<path d="M4 9.4
 var NOTE_ICON='<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.6"/><path d="M10 9v4.6"/><path d="M10 6.4v.1"/></svg>';
 var ARROW='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
 var BACK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>';
-var ST={P:{c:'may',t:'Yes',w:'Borough staff sign off with a permit.'},S:{c:'ask',t:'Yes, after a hearing',w:'The Zoning Hearing Board decides after a public hearing.'},C:{c:'ask',t:'Yes, after a hearing',w:'Borough Council decides after a public hearing. This can take four months or longer.'}};
-var NOTZ='<div class="notz"><span class="lab">Zoning doesn\'t decide</span><span>Rent</span><span>Property taxes</span><span>HOA or deed rules</span><span title="Checked by Centre Region Code Administration">Building safety</span></div>';
-var FOOT='<div class="foot"><span><b>Second draft from June 2026, still under review.</b> A third draft is expected, and the Council public hearing is tentatively set for early 2027.</span><span>This is not legal advice. The Borough Planning and Zoning Department decides what applies to a lot.</span><button type="button" class="link" data-open="gaps">What is real and what is missing</button><span>Built by Nish Barot. A project for discussion, not yet shared with the Borough.</span></div>';
+var DEC=TOWN.deciders,ST={P:{c:'may',t:'Yes',w:DEC.P.answer},S:{c:'ask',t:'Yes, after a hearing',w:DEC.S.answer},C:{c:'ask',t:'Yes, after a hearing',w:DEC.C.answer}};
+var NOTZ='<div class="notz"><span class="lab">Zoning doesn\'t decide</span><span>Rent</span><span>Property taxes</span><span>HOA or deed rules</span><span title="'+esc(TOWN.buildingSafety)+'">Building safety</span></div>';
+var FOOT='<div class="foot"><span>'+TOWN.footer.statusHtml+'</span><span>'+esc(TOWN.footer.legal)+'</span><button type="button" class="link" data-open="gaps">What is real and what is missing</button><span>'+esc(TOWN.footer.credit)+'</span></div>';
 function pct(v,max){return Math.max(0,Math.min(100,v/max*100)).toFixed(1)+'%';}
 function sizeCue(d){var x=Math.abs(d);if(x<=4)return 'about the height of a kitchen counter';if(x<=12)return 'about one story';if(x<=24)return 'about two stories';return 'about '+Math.round(x/11)+' stories';}
 function computeStats(){
@@ -526,7 +530,7 @@ function blockHtml(id){
   var where=B.h?'the '+B.h+' block of '+B.street:'the first block of '+B.street,p0=byId[B.ids[0]].properties,txt;
   if(Object.keys(pairs).length===1&&p0.h_cur!=null&&p0.h_draft!=null)txt=p0.h_cur===p0.h_draft?'On '+esc(where)+', the height limit stays at <b>'+p0.h_cur+' ft</b> on all '+n+' lots.':'On '+esc(where)+', the height limit goes from <b>'+p0.h_cur+' ft to '+p0.h_draft+' ft</b> on all '+n+' lots.';
   else{var parts=[];if(c.up)parts.push(c.up+' rise more than 10 ft');if(c.inc)parts.push(c.inc+' rise up to 10 ft (or only with incentives)');if(c.same)parts.push(c.same+' stay the same');if(c.down)parts.push(c.down+' go lower');if(c.na)parts.push(c.na+' have no height on file');txt='Of the '+n+' lots on '+esc(where)+', '+(parts.length>1?parts.slice(0,-1).join(', ')+' and '+parts[parts.length-1]:parts[0])+'.';}
-  return '<div class="blk"><h3>Your block</h3><p>'+txt+'</p><span class="small">Lots are grouped by street and hundred number from Borough addresses, so a block here is approximate.</span></div>';
+  return '<div class="blk"><h3>Your block</h3><p>'+txt+'</p><span class="small">'+esc(TOWN.text.block)+'</span></div>';
 }
 function acard(q,dr){
   var has=dr&&dr.use&&(q[0] in dr.use),v=has?dr.use[q[0]]:null,s;
@@ -536,7 +540,7 @@ function acard(q,dr){
   return '<div class="acard '+s.c+(s.c==='nd'?' nd2':'')+'"><span class="q">'+esc(q[1])+(q[2]?' <span class="hint">'+esc(q[2])+'</span>':'')+'</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH[s.c]+'</span>'+s.t+'</span><span class="w">'+esc(s.w)+'</span>'+cx+'</div>';
 }
 function udcard(q,w,k){return '<div class="acard nd nd2"><span class="q">'+esc(q)+'</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH.ud+'</span>Not decided yet</span><span class="w">'+esc(w)+'</span><span class="src2">'+src(k)+'</span></div>';}
-var ROOMMATE=['Can 4 friends who aren\'t family share a house?','Today the limit is 3 people who aren\'t family. Council\'s September 10, 2026 memo proposes 4. Nothing is final.','memo'];
+var ROOMMATE=TOWN.roommate;
 function backBtn(){var to=state.page==='lot'?state.prev:'home',l=to==='ask'&&state.hl?'Back to '+USEQ[state.hl][0].toLowerCase():to==='event'&&state.ev?'Back to '+evOf(state.ev).t.replace(/^I /,'you ').toLowerCase():'Overview';return '<button type="button" class="back" data-go="'+(state.page==='lot'?'back':'home')+'">'+BACK+esc(l)+'</button>';}
 
 function homeHtml(){
@@ -544,7 +548,7 @@ function homeHtml(){
   var rows=[['up',c.up],['inc',c.inc],['down',c.down],['na',c.na]].filter(function(r){return r[1]>0;});
   var lab={};XCLS.forEach(function(x){lab[x[0]]=x[1];});
   var h='<div class="page">';
-  h+='<div class="hero"><span class="lab">Draft zoning &middot; State College Borough</span><div class="big">'+(md>0?'+':'')+md+'<small>ft</small></div>'
+  h+='<div class="hero"><span class="lab">Draft zoning &middot; '+esc(TOWN.place)+'</span><div class="big">'+(md>0?'+':'')+md+'<small>ft</small></div>'
     +'<h2>is the change to the height limit on most lots: '+fmt(STAT.mn)+' of '+fmt(n)+'.</h2>'
     +'<p>'+Math.abs(md)+' ft is '+sizeCue(md)+'. A smaller set changes much more: <b>'+fmt(c.up)+' lots</b> rise more than 10 ft and <b>'+fmt(c.down)+'</b> go lower.</p>'
     +'<div class="sbar" role="img" aria-label="'+rows.map(function(r){return fmt(r[1])+' '+lab[r[0]];}).join(', ')+'">'+rows.map(function(r){return '<span style="flex:'+r[1]+';background:var(--x-'+r[0]+')"></span>';}).join('')+'</div>'
@@ -552,15 +556,12 @@ function homeHtml(){
   h+='<div class="sec2"><h3 class="lab">What\'s happening for you?</h3><div class="evs">'+EVENTS.map(function(e){return '<button type="button" class="ev" data-ev="'+e.k+'">'+esc(e.t)+'</button>';}).join('')+'</div></div>';
   h+='<div class="sec2"><h3 class="lab">Where can I</h3><div class="wrows">'+WHERE.map(function(u){var s=useStats(u);return '<button type="button" class="wrow" data-ask="'+u+'"><span>'+esc(USEQ[u][0])+'</span><em>'+fmt(s.P)+' lots</em>'+ARROW+'</button>';}).join('')+'</div></div>';
   h+='<div class="sec2"><h3 class="lab">Example places</h3><div class="qchips">'+FEATURED.map(function(f){return '<button type="button" class="chipb" data-id="'+f.id+'">'+esc(f.short)+'</button>';}).join('')+'</div></div>';
+  var C=TOWN.comment;
   h+='<div class="tl"><h3 class="lab">Where the draft is</h3><ol>'
-    +'<li class="done"><i></i><div><b>Second draft released</b><br><span>June 2026</span></div></li>'
-    +'<li class="now"><i></i><div><b>Council changes and a third draft</b><br><span>Council\'s Sept 10, 2026 memo lists changes. A third draft is expected.</span></div></li>'
-    +'<li><i></i><div><b>Planning commission and Centre County reviews</b><br><span>The county gets up to 45 days.</span></div></li>'
-    +'<li><i></i><div><b>Council public hearing</b><br><span>Tentatively early 2027. Anyone can speak.</span></div></li>'
-    +'<li><i></i><div><b>Council vote</b><br><span>Nothing changes until Council votes.</span></div></li></ol>'
-    +'<p class="small">Comment any time by email. Comments are posted publicly, so name the section you mean.</p>'
-    +'<div class="mail"><code>zonestatecollege@statecollegepa.us</code><button type="button" class="copy" data-copy="zonestatecollege@statecollegepa.us">Copy</button></div>'
-    +'<span class="srcs">'+src('memo')+src('zo')+'</span></div>';
+    +TOWN.timeline.map(function(x){return '<li'+(x.s?' class="'+x.s+'"':'')+'><i></i><div><b>'+esc(x.t)+'</b><br><span>'+esc(x.d)+'</span></div></li>';}).join('')+'</ol>'
+    +'<p class="small">'+esc(C.note)+'</p>'
+    +'<div class="mail"><code>'+esc(C.email)+'</code><button type="button" class="copy" data-copy="'+esc(C.email)+'">Copy</button></div>'
+    +'<span class="srcs">'+C.links.map(function(k){return src(k);}).join('')+'</span></div>';
   return h+FOOT+'</div>';
 }
 
@@ -570,7 +571,7 @@ function askHtml(){
   h+='<div class="hero"><span class="lab">'+(ev?esc(ev.t):'Where can I')+'</span><h2 class="q2">'+esc(USEQ[u][0])+'</h2>'+'</div>';
   h+='<div class="hero" style="margin-top:-12px"><div class="big">'+fmt(s.P)+'<small>lots</small></div><p class="hsub">where the draft lets you '+esc(USEQ[u][1])+' with a staff permit.'+(later?' <b>'+fmt(later)+' more</b> could, after a public hearing.':'')+'</p>'+(ev&&ev.intro?'<p class="intro">'+esc(ev.intro)+'</p>':'')
     +'<div class="sbar" aria-hidden="true"><span style="flex:'+s.P+';background:var(--brand)"></span><span style="flex:'+later+';background:var(--ask-lite)"></span><span style="flex:'+(s.no+s.nd)+';background:var(--dot-dim)"></span></div></div>';
-  var R=[['may','Borough staff sign off','Allowed. You still need a permit.',s.P],['ask','Zoning Hearing Board decides','A special exception, after a public hearing.',s.S],['ask','Borough Council decides','A conditional use, after a public hearing. Can take four months or longer.',s.C],['no','Not listed','The draft does not list it for these districts.',s.no]];
+  var R=[['may',esc(DEC.P.who),esc(DEC.P.ladder),s.P],['ask',esc(DEC.S.who),esc(DEC.S.ladder),s.S],['ask',esc(DEC.C.who),esc(DEC.C.ladder),s.C],['no','Not listed','The draft does not list it for these districts.',s.no]];
   h+='<div class="sec2"><h3 class="lab">Who says yes</h3><div class="ladder">'+R.filter(function(r,i){return r[3]>0||i===0||i===3;}).map(function(r){return '<div class="rung '+r[0]+'"><span class="gl" aria-hidden="true">'+GLYPH[r[0]]+'</span><div><b>'+r[1]+'</b><span>'+r[2]+'</span></div><em>'+fmt(r[3])+'</em></div>';}).join('')+'</div>'+(s.nd?'<span class="small">'+fmt(s.nd)+' lots have no draft district in our data.</span>':'')+'</div>';
   if(s.rows.length)h+='<div class="sec2"><h3 class="lab">Districts</h3><div class="dlist">'+s.rows.map(function(r){return '<div class="drow"><i style="background:'+(r.v==='P'?'var(--brand)':'var(--ask-lite)')+'"></i><span>'+esc(r.name)+'<small>'+(r.v==='P'?'permit':'hearing')+'</small></span><b>'+fmt(r.n)+'</b></div>';}).join('')+'</div></div>';
   h+='<div class="sec2"><h3 class="lab">Ask something else</h3><div class="qchips">'+Object.keys(USEQ).map(function(k){return '<button type="button" class="chipb" data-ask="'+k+'" aria-pressed="'+(k===u)+'">'+esc(USEQ[k][0])+'</button>';}).join('')+'</div></div>';
@@ -581,17 +582,13 @@ function askHtml(){
 
 function eventHtml(){
   var ev=evOf(state.ev),h='<div class="page">'+backBtn()+'<div class="hero"><span class="lab">What\'s happening for you?</span><h2 class="q2">'+esc(ev.t)+'</h2></div><div class="acards">';
-  if(ev.k==='friends'){
-    h+=udcard(ROOMMATE[0],ROOMMATE[1],ROOMMATE[2]);
-    h+='<div class="acard no"><span class="q">Can we rent a new small second home (ADU)?</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH.no+'</span>No, not to college students</span><span class="w">The draft does not allow a new small second home to be rented to college students.</span><span class="src2">'+src('memo')+'</span></div>';
-    h+='</div><div class="catch"><span class="lab">Good to know</span><p><span>A house the Borough counts as a student home needs a $1,000 license, and new ones must be spaced apart from other student homes.</span><span class="src2">'+src('lic')+'</span></p></div>';
-  }else if(ev.k==='homebiz'){
-    h+='<div class="acard may"><span class="q">Can I run a business from my home today?</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH.may+'</span>Yes, with limits</span><span class="w">One business per home, no sign, at most one helper from outside the family, and no food service.</span><span class="src2">'+src('code')+'</span></div>';
-    h+=udcard('Can clients visit, or can I put up a sign?','Council\'s September 10, 2026 memo proposes allowing clients, one small sign and two employees from outside the family.','memo');
-    h+='</div><div class="catch"><span class="lab">Good to know</span><p><span>Pennsylvania law says towns must allow a "no-impact" home business in every residential area: one with no more customer visits, deliveries or traffic than a normal home.</span><span class="src2">PA Municipalities Planning Code, 53 P.S. 10603(l)</span></p></div>';
-  }else{
-    h+='</div><div class="catch"><span class="lab">Ask before you build</span><p><span>A ramp or a bathroom change is mostly a building-safety question. Centre Region Code Administration checks the construction.</span></p><p><span>A ramp that reaches toward the lot line can also be a zoning question. Ask Borough planning first.</span></p><p><span>If zoning says no, you can ask the Zoning Hearing Board for a variance. It meets Tuesdays at 12:30 pm, usually 30 to 60 days after you apply.</span><span class="src2">'+src('zhb')+'</span></p></div>';
-  }
+  h+=(ev.cards||[]).map(function(c){
+    if(c.roommate)return udcard(ROOMMATE[0],ROOMMATE[1],ROOMMATE[2]);
+    if(c.c==='ud')return udcard(c.q,c.w,c.src);
+    return '<div class="acard '+c.c+'"><span class="q">'+esc(c.q)+'</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH[c.c]+'</span>'+esc(c.t)+'</span><span class="w">'+esc(c.w)+'</span>'+(c.src?'<span class="src2">'+src(c.src)+'</span>':'')+'</div>';
+  }).join('');
+  h+='</div>';
+  if(ev.notes)h+='<div class="catch"><span class="lab">'+esc(ev.notes.lab)+'</span>'+ev.notes.items.map(function(n){return '<p><span>'+esc(n[0])+'</span>'+(n[1]?'<span class="src2">'+src(n[1])+'</span>':'')+'</p>';}).join('')+'</div>';
   return h+NOTZ+FOOT+'</div>';
 }
 
@@ -602,7 +599,7 @@ function lotHtml(){
   var likely=feat&&/likely/i.test(feat.title),stand=feat&&/placeholder/i.test(feat.title);
   var title=feat?feat.title.replace(/\s*\(likely match\)\s*$/i,''):(st||'Parcel '+short(pr.id));
   var h='<div class="page">'+backBtn();
-  h+='<div class="ttl"><div class="row1"><h1>'+esc(title)+'</h1><span class="dpill ph">Draft &middot; June 2026</span></div><div class="meta"><span><b>'+esc(pr.draft_name||'No draft zone found')+'</b> in the draft</span>'+chip(pr.draft_name?'p':'n')+(likely?'<span class="dash" title="Not confirmed. Check the parcel with the Borough.">Likely match</span>':'')+(stand?'<span class="dash" title="A stand-in lot, not the real site.">Stand-in</span>':'')+'</div></div>';
+  h+='<div class="ttl"><div class="row1"><h1>'+esc(title)+'</h1><span class="dpill ph">Draft &middot; '+esc(TOWN.draft.date)+'</span></div><div class="meta"><span><b>'+esc(pr.draft_name||'No draft zone found')+'</b> in the draft</span>'+chip(pr.draft_name?'p':'n')+(likely?'<span class="dash" title="'+esc(TOWN.text.likelyTip)+'">Likely match</span>':'')+(stand?'<span class="dash" title="A stand-in lot, not the real site.">Stand-in</span>':'')+'</div></div>';
   if(b!=null){
     var max=Math.max(a||0,m||0,b),d=a!=null?b-a:null;
     h+='<div class="hb"><span class="lab">Height limit in the draft</span><div class="v2"><span class="n">'+b+'<small> ft</small></span>'+(d?'<span class="delta'+(d<0?' down':'')+'">'+(d>0?'+':'')+d+' ft</span>':'')+'</div>'
@@ -616,7 +613,7 @@ function lotHtml(){
   var why=[];
   if(likely||stand)why.push(stand?'This is a stand-in lot, not the real site.':'This parcel is our best match for the site and is not confirmed.');
   if(ed&&dr)why.push('It sits on a district line in a draft map traced from a PDF, so it may be '+esc(ed.join(' or '))+' instead and these answers could differ.');
-  if(why.length)h+='<div class="note">'+NOTE_ICON+'<p><b>Check with the Borough.</b> '+why.join(' ')+'</p></div>';
+  if(why.length)h+='<div class="note">'+NOTE_ICON+'<p><b>'+esc(TOWN.text.checkWith)+'</b> '+why.join(' ')+'</p></div>';
   var T=[['answers','Answers'],['changes','What changes'],['lot','The lot']];
   h+='<div class="tabs" role="group" aria-label="Sections">'+T.map(function(x){return '<button type="button" data-tab="'+x[0]+'" aria-pressed="'+(state.tab===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
   var body='';
@@ -626,7 +623,7 @@ function lotHtml(){
       if(state.hl)Q.sort(function(x,y){return (y[0]===state.hl)-(x[0]===state.hl);});
       var qs=state.all?Q:Q.slice(0,NSHOW);
       body+='<h3>What the draft says about this lot</h3><div class="acards">'+qs.map(function(q){return acard(q,dr);}).join('')+(/^res-/.test(pr.draft_class||'')?udcard(ROOMMATE[0],ROOMMATE[1],ROOMMATE[2]):'')+'</div>'+(Q.length>NSHOW?'<button type="button" class="more" id="moreQ">'+(state.all?'Show fewer questions':'Show all '+Q.length+' questions')+'</button>':'');
-      if(state.all)body+='<h3>All uses in the draft</h3><div class="uses">'+useRows(dr)+'</div><p class="small">Draft use tables, second draft, June 2026.</p>';
+      if(state.all)body+='<h3>All uses in the draft</h3><div class="uses">'+useRows(dr)+'</div><p class="small">Draft use tables, '+esc(TOWN.draft.name.toLowerCase())+', '+esc(TOWN.draft.date)+'.</p>';
       body+=NOTZ;
     }else body+='<p class="small">The draft district for this lot was not found, so there are no draft answers.</p>';
   }else if(state.tab==='changes'){
@@ -637,13 +634,13 @@ function lotHtml(){
       if(dr.incentives)dd+='<div><div class="k">Incentive height</div><p>'+esc(dr.incentives)+'</p></div>';
       if(dr.parking)dd+='<div><div class="k">Minimum parking</div><p>Apartments: '+esc(dr.parking.apartments)+'. Shops: '+esc(dr.parking.shops)+'. Hotel: '+esc(dr.parking.hotel)+'.</p></div>';
       if(dr.note)dd+='<p>'+esc(dr.note)+'</p>';
-      dd+='<p class="small">Duplex to fourplex, townhome and apartment listings carry extra standards in Sec. D.2.3(b)(1). Check the section before relying on a listing.</p>';
+      if(TOWN.text.draftDetail)dd+='<p class="small">'+esc(TOWN.text.draftDetail)+'</p>';
       body+='<h3>Draft rules in more detail '+chip('p')+'</h3><div class="prose">'+dd+'</div>';}
-    body+='<h3>What the rules say today '+chip(cr?'o':'n')+'</h3>'+(cr?'<div class="prose"><div><div class="k">Housing</div><p>'+esc(cr.housing)+'</p></div><ul>'+(cr.notes||[]).map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul><p class="small">Zone: '+esc(pr.cur_name||'')+(pr.cur?' ('+esc(pr.cur)+')':'')+'. Source: ecode360, '+esc(cr.cite)+'. Today\'s uses are not loaded as a table, so the answers cover the draft only.</p></div>':'<p class="small">Today\'s rules for '+esc(pr.cur_name||'this district')+' are not loaded yet.</p>');
+    body+='<h3>What the rules say today '+chip(cr?'o':'n')+'</h3>'+(cr?'<div class="prose"><div><div class="k">Housing</div><p>'+esc(cr.housing)+'</p></div><ul>'+(cr.notes||[]).map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul><p class="small">Zone: '+esc(pr.cur_name||'')+(pr.cur?' ('+esc(pr.cur)+')':'')+'. Source: '+esc(TOWN.text.todaySource)+', '+esc(cr.cite)+'. Today\'s uses are not loaded as a table, so the answers cover the draft only.</p></div>':'<p class="small">Today\'s rules for '+esc(pr.cur_name||'this district')+' are not loaded yet.</p>');
   }else{
     if(feat)body+='<h3>About this site</h3><div class="prose"><p>'+esc(feat.plan)+'</p><p class="small">'+esc(feat.note)+'</p></div>';
-    body+='<h3>About this lot</h3><div class="kv"><div><span>Parcel number</span><b class="mono">'+esc(short(pr.id))+'</b></div><div><span>Address</span><b>'+esc(st||'Not in Borough layer')+'</b></div><div><span>Today\'s zone</span><b>'+esc(pr.cur_name||'Not loaded')+(pr.cur?' ('+esc(pr.cur)+')':'')+'</b></div><div><span>Draft zone</span><b>'+esc(pr.draft_name||'Not found')+(pr.draft?' ('+esc(pr.draft)+')':'')+'</b></div><div><span>Lot size</span><b>'+pr.acres+' acres'+(pr.units>1?', '+pr.units+' condo units':'')+'</b></div><div><span>Buildings</span><b>'+(pr.bld_n?pr.bld_n+(pr.bld_n===1?' building, ':' buildings, ')+fmt(pr.bld_sqft)+' sq ft':'None found')+'</b></div></div>';
-    body+='<h3>How sure are we?</h3><div class="sure"><p>Each fact has a label.</p><p>'+chip('o')+' Taken from the Borough\'s own layer or the ordinance text.</p><p>'+chip('p')+' Read or traced from the Borough\'s PDF files, so approximate. The draft map is not official and is not the Borough\'s GIS.</p><p>'+chip('n')+' We do not have this yet.</p><p class="small">Setbacks, lot coverage, density, overlays and existing building heights are not applied.</p></div>';
+    body+='<h3>About this lot</h3><div class="kv"><div><span>Parcel number</span><b class="mono">'+esc(short(pr.id))+'</b></div><div><span>Address</span><b>'+esc(st||TOWN.text.noAddress)+'</b></div><div><span>Today\'s zone</span><b>'+esc(pr.cur_name||'Not loaded')+(pr.cur?' ('+esc(pr.cur)+')':'')+'</b></div><div><span>Draft zone</span><b>'+esc(pr.draft_name||'Not found')+(pr.draft?' ('+esc(pr.draft)+')':'')+'</b></div><div><span>Lot size</span><b>'+pr.acres+' acres'+(pr.units>1?', '+pr.units+' condo units':'')+'</b></div><div><span>Buildings</span><b>'+(pr.bld_n?pr.bld_n+(pr.bld_n===1?' building, ':' buildings, ')+fmt(pr.bld_sqft)+' sq ft':'None found')+'</b></div></div>';
+    body+='<h3>How sure are we?</h3><div class="sure"><p>Each fact has a label.</p><p>'+chip('o')+' '+esc(TOWN.text.sureOfficial)+'</p><p>'+chip('p')+' '+esc(TOWN.text.surePdf)+'</p><p>'+chip('n')+' We do not have this yet.</p><p class="small">Setbacks, lot coverage, density, overlays and existing building heights are not applied.</p></div>';
   }
   h+='<div class="panel">'+body+'</div>';
   return h+FOOT+'</div>';
@@ -716,7 +713,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
   var dots=makeDots(r[0]);
   map=new maplibregl.Map({container:'map',style:{version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':css('--map-bg')}}]},center:[(x0+x1)/2,(y0+y1)/2],zoom:14.4,pitch:48,bearing:-20,maxPitch:80,attributionControl:false,dragRotate:true});
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
-  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Parcels: Centre County via PASDA. Zoning, addresses: State College Borough. Building footprints &copy; Microsoft, ODbL'}),'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:TOWN.mapCreditsHtml}),'bottom-right');
   map.on('load',function(){
 /*JS_LAYERS*/
     map.addLayer({id:'ask-fill',type:'fill',source:'parcels',layout:{visibility:'none'},filter:['==',['get','id'],''],paint:{'fill-color':css('--brand'),'fill-opacity':0.62}},'bld');
