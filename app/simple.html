@@ -918,7 +918,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
   var dots=makeDots(r[0]);
   map=new maplibregl.Map({container:'map',style:{version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':css('--map-bg')}}]},center:[(x0+x1)/2,(y0+y1)/2],zoom:14.4,pitch:48,bearing:-20,maxPitch:80,attributionControl:false,dragRotate:true});
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
-  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Parcels: Centre County via PASDA. Zoning, addresses: State College Borough. Building footprints customAttribution:'Data: PASDA, Microsoft, State College Borough'copy; Microsoft, ODbL'}),'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Parcels: Centre County via PASDA. Zoning, addresses: State College Borough. Building footprints &copy; Microsoft, ODbL'}),'bottom-right');
   map.on('load',function(){
     map.addSource('parcels',{type:'geojson',data:r[0]});
     map.addSource('dots',{type:'geojson',data:dots});
