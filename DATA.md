@@ -1,5 +1,7 @@
 # Data sources and terms
 
+The sample data in `app/data/` covers one place: State College Borough, Pennsylvania, using its second zoning draft (June 2026). If you set zōna up for another town, replace these files and this table with your own sources.
+
 The code in this repository is MIT licensed (see `LICENSE`). The MIT license does not cover the data in `app/data/`. Each dataset keeps the terms of its source, listed below. Data was retrieved in October 2026.
 
 | File or field | Source | Terms | Credit |

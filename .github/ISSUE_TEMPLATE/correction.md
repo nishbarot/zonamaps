@@ -9,6 +9,6 @@ labels: correction
 
 **What zōna says:**
 
-**What the draft says** (section number or PDF page):
+**What the ordinance or draft says** (section number or PDF page):
 
 **Anything else:**

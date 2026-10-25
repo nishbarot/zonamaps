@@ -4,11 +4,11 @@ Thanks for helping. There are two kinds of contribution, and the first matters m
 
 ## 1. Fix a wrong answer
 
-If zōna says something about a lot that the draft doesn't, [open a correction](../../issues/new?template=correction.md). Include:
+If zōna says something about a lot that the ordinance doesn't, [open a correction](../../issues/new?template=correction.md). Include:
 
 - the parcel number (shown on the lot page),
 - what zōna says,
-- what the draft says, with the section number or the PDF page.
+- what the ordinance or draft says, with the section number or the PDF page.
 
 You don't need to write any code.
 
@@ -27,12 +27,12 @@ Keep pull requests small. If you're changing the data in `app/data/`, say where 
 
 Every word in zōna is written for someone who has never read a zoning ordinance.
 
-- **Plain words.** Say "Borough staff sign off with a permit", not "permitted by right".
+- **Plain words.** Say "staff sign off with a permit", not "permitted by right".
 - **Verified facts only.** If something is a guess or an approximation, label it.
-- **Never overstate the draft.** Don't call it "official", and don't call the traced district map "the Borough's GIS".
+- **Never overstate a draft.** Don't call it "official", and don't call a traced district map the government's own GIS.
 - **Cite the section** for every rule.
 - **No real people or addresses** in examples or test data. Use "123 Main Street, Anytown" and "Jane Doe".
-- **No legal advice.** Point people to the Borough Planning and Zoning Department for a decision on their lot.
+- **No legal advice.** Point people to their local planning and zoning office for a decision on their lot.
 
 ## Data
 
