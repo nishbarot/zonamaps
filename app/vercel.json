@@ -1,0 +1,4 @@
+{
+  "rewrites": [{ "source": "/", "destination": "/simple.html" }],
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }]
+}
