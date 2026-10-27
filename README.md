@@ -28,7 +28,7 @@ zōna starts from those questions, not from the ordinance's structure. It answer
 - **Starts from your life, not the code.** Residents pick "A parent is moving in with me" or "I want to open a café", and zōna turns that into the zoning question underneath it.
 - **Answers "Where can I…" with real counts.** For example, "Add a small second home: 2,632 lots", split by who says yes.
 - **Says who decides.** Every answer is one of four: *Yes* (staff issue a permit), *Yes, after a hearing* (a hearing board or the governing body), *No*, or *Not decided yet*.
-- **Explains any lot.** Search an address or parcel number to see today's and the draft's height limits, a summary of the block, and what you could do there.
+- **Explains any lot.** Search an address or parcel number to see today's and the draft's height limits in stories, what really changes there (uses, lot sizes), what earns incentive height, a summary of the block, and what you could do there.
 - **Points to the process.** It gives the draft timeline and how to send a public comment.
 - **Works on phones.** The map comes with a bottom sheet you can drag to any height. 
 
@@ -84,7 +84,7 @@ tools/
 ## Set it up for your town
 
 1. **Parcels.** Export your county's or town's parcels as GeoJSON polygons into `data/parcels.json`. Each feature needs an `id` (parcel number), `cur` and `draft` district codes, and the height limits `h_cur`, `h_draft` and `h_draft_max` in feet. A lot with no height on file can leave them `null`.
-2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking` and `incentives`.
+2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking`, `incentives` and `changes`. `incentives` lists what earns extra stories (`max`, and `options` with `t`, `st` stories, optional `w`, `drop`), plus `pending` changes not yet in the draft text. `changes` holds the plain-language items that matter most for a district, like new uses or lot sizes, each with a citation (`c`).
 3. **Addresses.** Map parcel numbers to site addresses in `data/addresses.json`. Use parcel number and address only. Leave out owner names and sale data.
 4. **Footprints (optional).** Run `tools/get_footprints.py` on your state's file from [Microsoft's footprints](https://github.com/microsoft/USBuildingFootprints) and keep the ODbL credit.
 5. **Town settings.** Everything about the place itself lives in `app/town.js`: its name, who decides (staff, hearing board, council), the draft's name and date, the timeline, the comment email, source links, notes, example places, the help panel and the map credits. Rewrite it for your ordinance and cite your own sections. No rebuild is needed.

@@ -33,10 +33,14 @@ var TOWN={
 
   // "The catch" notes on a Where can I page, by use. Each note is [text, link key].
   catches:{
-    adu:[['Under the draft, a new small second home cannot be rented to college students.','memo'],['Whether adding one raises your property tax assessment is not decided yet.','meet']],
-    two_to_four:[['Borough slides mention extra limits on students and short-term rentals for 3 and 4 home buildings in Residence 2. We have not found this in the draft text yet, so check the latest draft.','slides']],
+    adu:[['Under the draft, a new small second home must be deed-restricted: no college student renters and no short-term rentals.','memo'],['Whether adding one raises your property tax assessment is not decided yet.','meet']],
+    two_to_four:[['In Residence 2, a triplex or fourplex needs a lot of at least 10,000 sq ft and must be deed-restricted against college students and short-term rentals (draft C.3.3, note 1).','memo']],
     restaurant:[['Turning a store into a restaurant can change how much parking you need. Check the draft parking table (Part E).','zo']]
   },
+
+  // Changes Council has asked for since the draft was published. Shown with each
+  // district's incentive list ("pending" in data/rules.json). link is a key in links.
+  revisions:{label:'Changes Council asked for',date:'Sept 10, 2026',link:'memo',note:'Council asked for these in its Sept 10, 2026 memo. They are expected in the third draft and are not in the draft text yet.'},
 
   // A rule still being changed, shown on residential lots. [question, what we know, link key]
   roommate:['Can 4 friends who aren\'t family share a house?','Today the limit is 3 people who aren\'t family. Council\'s September 10, 2026 memo proposes 4. Nothing is final.','memo'],

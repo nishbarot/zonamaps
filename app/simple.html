@@ -171,6 +171,16 @@ body{overflow:hidden}
 .more{min-height:44px;width:100%;border:1.5px solid var(--line-ctl);background:var(--panel);border-radius:12px;font-size:.9375rem;font-weight:500}
 .more:hover{border-color:var(--ink)}
 .sect svg{width:100%;height:auto;display:block;max-height:240px}
+.incl{list-style:none;padding:0;margin:0;display:grid;gap:0}
+.incl li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9375rem}
+.incl li:last-child{border-bottom:0}
+.incl li small{display:block;color:var(--muted);font-size:.8125rem}
+.incl li b{font-weight:600;color:var(--accent-strong);white-space:nowrap}
+.incl li.gone>span,.incl li.gone b{color:var(--muted)}
+.incl li.gone s{text-decoration-thickness:1px}
+.incbox{display:grid;gap:8px;margin-top:12px}
+.incbox .k{font-size:.875rem;color:var(--muted);font-weight:500}
+.item .cite{font-size:.8125rem}
 .uses{display:grid}
 .uses div{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
 .pill{font-size:.8125rem;font-weight:500;padding:2px 10px;border:1.5px solid var(--line-ctl);border-radius:12px;white-space:nowrap;color:var(--muted)}
@@ -578,21 +588,49 @@ function renderLegend(){
 }
 function renderSection(pr,cr,dr){
   var a=cr&&cr.ft!=null?cr.ft:null,b=dr&&dr.ft!=null?dr.ft:null,m=dr&&dr.ft_max!=null?dr.ft_max:b;
+  var sa=cr&&cr.stories!=null?cr.stories:null,sb=dr&&dr.stories!=null?dr.stories:null,sm=dr&&dr.stories_max!=null?dr.stories_max:sb;
   var top=Math.max(a||0,m||0,30),step=top<=60?10:(top<=120?20:50),max=Math.ceil(top/step)*step;
-  $('sectScale').textContent='0 to '+max+' ft';
-  var W=224,H=150,base=128,ph=108,sc=ph/max,s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Height limit today and in the draft, in feet">';
-  for(var v=0;v<=max;v+=step){var y=base-v*sc;s+='<line x1="30" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="var(--hatch)" stroke-width="1"/><text x="24" y="'+(y+3)+'" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--muted)">'+v+'</text>';}
-  function col(x,w,val,fill,name,extra){
-    var t='<text x="'+(x+w/2)+'" y="'+(base+13)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10" letter-spacing=".06em" fill="var(--muted)">'+name+'</text>';
-    if(val==null)return t+'<rect x="'+x+'" y="'+(base-18)+'" width="'+w+'" height="18" fill="none" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="'+(x+w/2)+'" y="'+(base-6)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10" fill="var(--muted)">n/a</text>';
-    var h=val*sc;t='<rect x="'+x+'" y="'+(base-h)+'" width="'+w+'" height="'+h+'" fill="'+fill+'"/>'+t;
-    if(extra>val){var h2=(extra-val)*sc;t+='<rect x="'+x+'" y="'+(base-h-h2)+'" width="'+w+'" height="'+h2+'" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 2"/><text x="'+(x+w+4)+'" y="'+(base-h-h2+9)+'" font-family="var(--font-mono)" font-size="10" fill="var(--accent-strong)">'+extra+'</text>';}
-    return t+'<text x="'+(x+w/2)+'" y="'+(base-h-(extra>val?(extra-val)*sc:0)-4)+'" text-anchor="middle" font-family="var(--font-mono)" font-size="10.5" fill="var(--ink)" '+(extra>val?'style="display:none"':'')+'>'+val+'</text>';
+  $('sectScale').textContent='Drawn to scale, 0 to '+max+' ft.';
+  var W=240,H=176,base=128,ph=104,sc=ph/max,M='font-family="var(--font-mono)"',s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(sectLabel(a,sa,b,sb,m,sm))+'">';
+  for(var v=0;v<=max;v+=step){var y=base-v*sc;s+='<line x1="30" x2="'+W+'" y1="'+y+'" y2="'+y+'" stroke="var(--hatch)" stroke-width="1"/><text x="24" y="'+(y+3)+'" text-anchor="end" '+M+' font-size="9" fill="var(--muted)">'+v+'</text>';}
+  function floors(x,w,y0,h,n,stroke,dash){var t='';if(!n||n<2)return t;for(var k=1;k<n;k++){var yy=y0+h*k/n;t+='<line x1="'+x+'" x2="'+(x+w)+'" y1="'+yy+'" y2="'+yy+'" stroke="'+stroke+'" stroke-width="1"'+(dash?' stroke-dasharray="3 2"':'')+'/>';}return t;}
+  function col(x,w,ft,st,fill,name,xft,xst){
+    var t='<text x="'+(x+w/2)+'" y="'+(base+13)+'" text-anchor="middle" '+M+' font-size="10" letter-spacing=".06em" fill="var(--muted)">'+name+'</text>';
+    if(ft==null)return t+'<rect x="'+x+'" y="'+(base-18)+'" width="'+w+'" height="18" fill="none" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="'+(x+w/2)+'" y="'+(base-6)+'" text-anchor="middle" '+M+' font-size="10" fill="var(--muted)">n/a</text>';
+    var h=ft*sc;t+='<rect x="'+x+'" y="'+(base-h)+'" width="'+w+'" height="'+h+'" fill="'+fill+'"/>'+floors(x,w,base-h,h,st,'var(--panel)',false);
+    if(st!=null)t+='<text x="'+(x+w/2)+'" y="'+(base+27)+'" text-anchor="middle" '+M+' font-size="10.5" fill="var(--ink)">'+stor(st)+'</text>';
+    t+='<text x="'+(x+w/2)+'" y="'+(base+(st!=null?40:27))+'" text-anchor="middle" '+M+' font-size="9.5" fill="var(--muted)">'+ft+' ft</text>';
+    if(xft>ft){var h2=(xft-ft)*sc;t+='<rect x="'+x+'" y="'+(base-h-h2)+'" width="'+w+'" height="'+h2+'" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="3 2"/>'+floors(x,w,base-h-h2,h2,xst!=null&&st!=null?xst-st:null,'var(--accent)',true);
+      t+='<text x="'+(x+w+4)+'" y="'+(base-h-h2+9)+'" '+M+' font-size="10" fill="var(--accent-strong)">'+(xst!=null&&st!=null?storDelta(xst-st):'+'+(xft-ft)+' ft')+'</text>';
+      t+='<text x="'+(x+w+4)+'" y="'+(base-h-h2+21)+'" '+M+' font-size="9" fill="var(--muted)">with</text><text x="'+(x+w+4)+'" y="'+(base-h-h2+31)+'" '+M+' font-size="9" fill="var(--muted)">incentives</text>';
+    }
+    return t;
   }
-  s+=col(46,52,a,'var(--env-today)','TODAY',null);
-  s+=col(128,52,b,'var(--accent)','DRAFT',m);
+  s+=col(44,50,a,sa,'var(--env-today)','TODAY',null,null);
+  s+=col(118,50,b,sb,'var(--accent)','DRAFT',m,sm);
   s+='</svg>';
   $('sect').innerHTML=s;
+}
+function sectLabel(a,sa,b,sb,m,sm){
+  var t=a!=null?'Today '+(sa!=null?stor(sa)+', ':'')+a+' feet. ':'';
+  t+='Draft '+(sb!=null?stor(sb)+', ':'')+b+' feet';
+  if(m>b)t+=', up to '+(sm!=null?stor(sm)+', ':'')+m+' feet with incentives';
+  return t+'.';
+}
+function incHtml(dr){
+  var I=dr.incentives,h='';
+  if(!I)return '';
+  if(typeof I==='string')return '<div class="incbox"><div class="k">Incentive height</div><p class="small">'+esc(I)+'</p></div>';
+  var extra=dr.stories_max!=null&&dr.stories!=null?dr.stories_max-dr.stories:null;
+  h+='<div class="incbox"><div class="k">How a project can earn the extra '+(extra?stor(extra):'height')+'</div>';
+  h+='<p class="small">Each option below adds stories, up to '+stor(I.max)+' in total.'+(I.first?' '+esc(I.first):'')+'</p>';
+  h+='<ul class="incl">'+I.options.map(function(o){
+    var tx=esc(o.t)+(o.w?'<small>'+esc(o.w)+'</small>':'');
+    return '<li'+(o.drop?' class="gone"':'')+'><span>'+(o.drop?'<s>'+tx+'</s><small>'+esc(TOWN.revisions?'Council asked to drop this ('+TOWN.revisions.date+')':'Being dropped')+'</small>':tx)+'</span><b>'+storDelta(o.st)+'</b></li>';
+  }).join('')+'</ul>';
+  if(I.pending&&I.pending.length&&TOWN.revisions){var R=TOWN.revisions;
+    h+='<div class="k">'+esc(R.label)+', '+esc(R.date)+'</div><ul class="prose" style="list-style:disc;padding-left:20px;font-size:.875rem">'+I.pending.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="small">'+esc(R.note)+' '+src(R.link)+'</p>';}
+  return h+'</div>';
 }
 function useRows(d){
   return USE_LABELS.map(function(u){var v=d.use?d.use[u[0]]:null;return '<div><span>'+esc(u[1])+'</span><span class="pill '+(v||'N')+'">'+(v?LBL[v]:'Not allowed')+'</span></div>';}).join('');
@@ -600,15 +638,20 @@ function useRows(d){
 function items(pr,cr,dr){
   var o=[];
   if(dr&&dr.ft!=null){
-    var b=dr.ft,m=dr.ft_max;
+    var b=dr.ft,m=dr.ft_max,sb=dr.stories,sm=dr.stories_max,inc=m>b?' Up to '+(sm!=null&&sm>sb?stor(sm)+' ('+m+' ft)':m+' ft')+' with incentives.':' No incentive height.';
     if(cr&&cr.ft!=null){
-      var a=cr.ft,d=b-a;
-      o.push({tag:d>0?'up':(d<0?'down':'same'),t:d>0?'Base height rises '+d+' ft':(d<0?'Base height falls '+(-d)+' ft':'Base height unchanged'),s:'Today '+a+' ft, draft '+b+' ft'+(m>b?', up to '+m+' ft with incentives':', no incentive height')+'.'});
-    }else o.push({tag:'note',t:'Today\'s height is not loaded',s:'Draft base height is '+b+' ft'+(m>b?', up to '+m+' ft with incentives':'')+'.'});
+      var a=cr.ft,d=b-a,sa=cr.stories;
+      if(sa!=null&&sb!=null){
+        var ds=sb-sa,ftl=d?'The limit in feet goes from '+a+' to '+b+' ft'+(ds?'.':', which does not add a floor.'):'The limit in feet stays at '+a+' ft.';
+        o.push({tag:ds>0?'up':(ds<0?'down':(m>b?'up':'same')),t:ds>0?'Rises from '+sa+' to '+stor(sb):(ds<0?'Drops from '+sa+' to '+stor(sb):'Still '+stor(sb)+(m>b?', more with incentives':'')),s:ftl+inc});
+      }else o.push({tag:d>0?'up':(d<0?'down':'same'),t:sb!=null?'Draft allows '+stor(sb):(d>0?'Base height rises '+d+' ft':(d<0?'Base height falls '+(-d)+' ft':'Base height unchanged')),s:'Today '+a+' ft'+(sa==null?' (today\'s rule sets no story count)':'')+', draft '+b+' ft.'+inc});
+    }else o.push({tag:'note',t:'Today\'s height is not loaded',s:'Draft base height is '+(sb!=null?stor(sb)+', ':'')+b+' ft.'+inc});
   }
+  if(dr&&dr.changes)dr.changes.forEach(function(c){o.push({tag:c.tag,t:c.t,s:c.s,c:c.c});});
   if(dr&&dr.use){
     var ap=dr.use.apartments;
     if(ap)o.push({tag:'up',t:'Apartment buildings: '+LBL[ap].toLowerCase(),s:'Listed in the draft use table for '+dr.name+'.'});
+    else if(dr.changes){}
     else if(dr.use.two_to_four||dr.use.townhome)o.push({tag:'note',t:'Smaller multi-home buildings only',s:'The draft allows duplexes to fourplexes or townhomes here, not apartment buildings.'});
     else o.push({tag:'same',t:'No new housing types',s:'The draft does not add housing types in '+dr.name+'.'});
     if(dr.use.drive_through)o.push({tag:'note',t:'Drive-throughs need conditional approval',s:'Conditional use in the draft.'});
@@ -632,6 +675,8 @@ var DEC=TOWN.deciders,ST={P:{c:'may',t:'Yes',w:DEC.P.answer},S:{c:'ask',t:'Yes, 
 var NOTZ='<div class="notz"><span class="lab">Zoning doesn\'t decide</span><span>Rent</span><span>Property taxes</span><span>HOA or deed rules</span><span title="'+esc(TOWN.buildingSafety)+'">Building safety</span></div>';
 var FOOT='<div class="foot"><span>'+TOWN.footer.statusHtml+'</span><span>'+esc(TOWN.footer.legal)+'</span><button type="button" class="link" data-open="gaps">What is real and what is missing</button><span>'+esc(TOWN.footer.credit)+'</span></div>';
 function pct(v,max){return Math.max(0,Math.min(100,v/max*100)).toFixed(1)+'%';}
+function stor(n){return n===1?'1 story':n+' stories';}
+function storDelta(n){return (n>0?'+':'')+n+(Math.abs(n)===1?' story':' stories');}
 function sizeCue(d){var x=Math.abs(d);if(x<=4)return 'about the height of a kitchen counter';if(x<=12)return 'about one story';if(x<=24)return 'about two stories';return 'about '+Math.round(x/11)+' stories';}
 function computeStats(){
   var F=DATA.parcels.features,c={up:0,inc:0,down:0,same:0,na:0},dh={},dist={},nz=0;
@@ -730,13 +775,16 @@ function lotHtml(){
   h+='<div class="ttl"><div class="row1"><h1>'+esc(title)+'</h1><span class="dpill ph">Draft &middot; '+esc(TOWN.draft.date)+'</span></div><div class="meta"><span><b>'+esc(pr.draft_name||'No draft zone found')+'</b> in the draft</span>'+chip(pr.draft_name?'p':'n')+(likely?'<span class="dash" title="'+esc(TOWN.text.likelyTip)+'">Likely match</span>':'')+(stand?'<span class="dash" title="A stand-in lot, not the real site.">Stand-in</span>':'')+'</div></div>';
   if(b!=null){
     var max=Math.max(a||0,m||0,b),d=a!=null?b-a:null;
-    h+='<p class="verdict">'+(a==null?'The draft height limit is <b>'+b+' ft</b>.':d<0?'The height limit drops from <b>'+a+' ft to '+b+' ft</b>.':d>0?'The height limit rises from <b>'+a+' ft to '+b+' ft</b>.':'The height limit stays at <b>'+b+' ft</b>.')+(m>b?' Up to '+m+' ft would be possible with incentives.':'')+'</p>';
-    h+='<div class="hb"><span class="lab">Height limit in the draft</span><div class="v2"><span class="n">'+b+'<small> ft</small></span>'+(d?'<span class="delta'+(d<0?' down':'')+'">'+(d>0?'+':'')+d+' ft</span>':'')+'</div>'
-      +'<p class="small">'+(a==null?'Today\'s limit is not loaded.':(d?'Today '+a+' ft. '+Math.abs(d)+' ft is '+sizeCue(d)+'.':'Same as today, '+a+' ft.'))+'</p>'
-      +'<div class="bars" role="img" aria-label="'+(a!=null?'Today '+a+' feet. ':'')+'Draft '+b+' feet'+(m>b?', up to '+m+' feet with incentives':'')+'.">'
+    var sa=cr&&cr.stories!=null?cr.stories:null,sb=dr.stories,sm=dr.stories_max,ds=sa!=null&&sb!=null?sb-sa:null,incS=m>b?(sm!=null&&sb!=null&&sm>sb?stor(sm):m+' ft'):null;
+    if(sb!=null)h+='<p class="verdict">'+(sa==null?'The draft height limit is <b>'+stor(sb)+'</b>.':ds<0?'The height limit drops from <b>'+sa+' to '+stor(sb)+'</b>.':ds>0?'The height limit rises from <b>'+sa+' to '+stor(sb)+'</b>.':'The height limit stays at <b>'+stor(sb)+'</b>.')+(incS?' Up to '+incS+' would be possible with incentives.':'')+'</p>';
+    else h+='<p class="verdict">'+(a==null?'The draft height limit is <b>'+b+' ft</b>.':d<0?'The height limit drops from <b>'+a+' ft to '+b+' ft</b>.':d>0?'The height limit rises from <b>'+a+' ft to '+b+' ft</b>.':'The height limit stays at <b>'+b+' ft</b>.')+(m>b?' Up to '+m+' ft would be possible with incentives.':'')+'</p>';
+    var ftNote=a==null?'Today\'s limit is not loaded.':(sa==null&&sb!=null?'Today '+a+' ft. Today\'s rule sets no story count. Draft '+b+' ft.':sa!=null&&sb!=null?'Today '+stor(sa)+' and '+a+' ft. Draft '+b+' ft.'+(d&&!ds?' The '+(d>0?'extra ':'')+Math.abs(d)+' ft does not change the number of floors.':''):(d?'Today '+a+' ft. '+Math.abs(d)+' ft is '+sizeCue(d)+'.':'Same as today, '+a+' ft.'));
+    h+='<div class="hb"><span class="lab">Height limit in the draft</span><div class="v2">'+(sb!=null?'<span class="n">'+sb+'<small> '+(sb===1?'story':'stories')+'</small></span>'+(ds?'<span class="delta'+(ds<0?' down':'')+'">'+storDelta(ds)+'</span>':''):'<span class="n">'+b+'<small> ft</small></span>'+(d?'<span class="delta'+(d<0?' down':'')+'">'+(d>0?'+':'')+d+' ft</span>':''))+'</div>'
+      +'<p class="small">'+ftNote+'</p>'
+      +'<div class="bars" role="img" aria-label="'+esc(sectLabel(a,sa,b,sb,m,sm))+'">'
       +(a!=null?'<div class="bar"><span>Today</span><div class="track"><i class="t" style="width:'+pct(a,max)+'"></i></div></div>':'')
       +'<div class="bar"><span>Draft</span><div class="track">'+(m>b?'<i class="inc" style="width:'+pct(m,max)+'"></i>':'')+'<i class="d" style="width:'+pct(b,max)+'"></i></div></div></div>'
-      +'<span class="small">'+dr.stories+' stories. '+(m>b?'Up to '+m+' ft with incentives (dashed).':'No incentive height.')+' The orange block on the map is the most an owner could build. Nothing is built unless an owner chooses to.</span></div>';
+      +'<span class="small">'+(m>b?'Up to '+(sm!=null&&sb!=null&&sm>sb?stor(sm)+' ('+m+' ft)':m+' ft')+' with incentives (dashed).':'No incentive height.')+' The orange block on the map is the most an owner could build. Nothing is built unless an owner chooses to.</span></div>';
   }else h+='<div class="hb"><span class="small">The draft height limit is not loaded for this lot.</span></div>';
   h+=blockHtml(pr.id);
   var why=[];
@@ -757,10 +805,10 @@ function lotHtml(){
     }else body+='<p class="small">The draft district for this lot was not found, so there are no draft answers.</p>';
   }else if(state.tab==='changes'){
     var it=items(pr,cr,dr),TAGS={up:'More allowed',down:'Less allowed',same:'No change',note:'Note'};
-    body+='<h3>What changes from today</h3>'+(it.length?'<div class="items">'+it.map(function(i){return '<div class="item '+i.tag+'"><b>'+esc(i.t)+'</b><span class="tag">'+TAGS[i.tag]+'</span><span>'+esc(i.s)+'</span></div>';}).join('')+'</div>':'<p class="small">No draft rules are loaded for this lot.</p>');
-    if(b!=null)body+='<h3>Height, side view</h3><div class="sect"><div class="small" style="margin-bottom:4px">Height in feet. Dashed box is the incentive height. <span id="sectScale"></span></div><div id="sect"></div>'+(cr&&cr.height_note?'<p class="small">'+esc(cr.height_note)+'</p>':'')+'</div>';
+    body+='<h3>What changes from today</h3>'+(it.length?'<div class="items">'+it.map(function(i){return '<div class="item '+i.tag+'"><b>'+esc(i.t)+'</b><span class="tag">'+TAGS[i.tag]+'</span><span>'+esc(i.s)+'</span>'+(i.c?'<span class="cite">'+esc(i.c)+'</span>':'')+'</div>';}).join('')+'</div>':'<p class="small">No draft rules are loaded for this lot.</p>');
+    if(b!=null)body+='<h3>Height, side view</h3><div class="sect"><div class="small" style="margin-bottom:4px">Each band is one story. Dashed bands are stories an incentive can add. <span id="sectScale"></span></div><div id="sect"></div>'+(cr&&cr.height_note?'<p class="small">'+esc(cr.height_note)+'</p>':'')+(dr?incHtml(dr):'')+'</div>';
     if(dr){var dd='';
-      if(dr.incentives)dd+='<div><div class="k">Incentive height</div><p>'+esc(dr.incentives)+'</p></div>';
+      if(dr.incentives&&b==null)dd+=incHtml(dr);
       if(dr.parking)dd+='<div><div class="k">Minimum parking</div><p>Apartments: '+esc(dr.parking.apartments)+'. Shops: '+esc(dr.parking.shops)+'. Hotel: '+esc(dr.parking.hotel)+'.</p></div>';
       if(dr.note)dd+='<p>'+esc(dr.note)+'</p>';
       if(TOWN.text.draftDetail)dd+='<p class="small">'+esc(TOWN.text.draftDetail)+'</p>';
