@@ -351,6 +351,8 @@ body{overflow:hidden}
 @keyframes lvpop{from{scale:.2}60%{scale:1.3}to{scale:1}}
 .lvtag{translate:-50% -130%;font-size:.8125rem;font-weight:600;line-height:1.2;white-space:nowrap;padding:5px 10px;border-radius:999px;background:var(--panel);box-shadow:var(--card-shadow);border:1.5px solid var(--muted);color:var(--muted)}
 .lvtag.nd{border-style:dashed}
+.lvtag.ok{border-color:var(--env-draft);color:var(--accent-strong)}
+.lvtag.base{border-color:var(--line-ctl);color:var(--ink);font-weight:500;translate:-50% -50%}
 .lvtag.lim{border:1.5px dashed var(--brand);color:var(--brand)}
 .lvtag.dim{display:none;translate:-50% -50%;padding:2px 8px;border:1px dashed var(--brand);color:var(--brand);box-shadow:none;font-weight:500}
 .lvtags[data-view="above"] .lvtag.dim{display:block}
@@ -917,8 +919,8 @@ function lotHtml(){
   var title=feat?feat.title.replace(/\s*\(likely match\)\s*$/i,''):(st||'Parcel '+short(pr.id));
   var h='<div class="page">'+backBtn();
   h+='<div class="ttl"><div class="row1"><h1>'+esc(title)+'</h1><span class="dpill ph">Draft &middot; '+esc(TOWN.draft.date)+'</span></div><div class="meta"><span><b>'+esc(pr.draft_name||'No draft zone found')+'</b> in the draft</span>'+chip(pr.draft_name?'p':'n')+(likely?'<span class="dash" title="'+esc(TOWN.text.likelyTip)+'">Likely match</span>':'')+(stand?'<span class="dash" title="A stand-in lot, not the real site.">Stand-in</span>':'')+'</div></div>';
-  var M=lotModel(pr.id),lvok=!!(M.ok&&dr&&dr.lot);
-  if(lvok){h+='<p class="verdict">'+lvHead(M)+'</p>';
+  var M=lotModel(pr.id),lvok=!!M.ok,LB=(dr&&dr.lot)||{};
+  if(lvok){h+='<p class="verdict">'+lvHead(M,dr)+'</p>';
     h+=state.lv?'<div id="lvAns">'+lvAnswer(M,choiceOf(M,state.pick),dr)+'</div>'+lvHow(M,dr):'<button type="button" class="more" data-lv="open">See this lot as a model</button>';}
   if(b!=null){
     var max=Math.max(a||0,m||0,b),d=a!=null?b-a:null;
@@ -932,7 +934,8 @@ function lotHtml(){
       +(a!=null?'<div class="bar"><span>Today</span><div class="track"><i class="t" style="width:'+pct(a,max)+'"></i></div></div>':'')
       +'<div class="bar"><span>Draft</span><div class="track">'+(m>b?'<i class="inc" style="width:'+pct(m,max)+'"></i>':'')+'<i class="d" style="width:'+pct(b,max)+'"></i></div></div></div>'
       +'<span class="small">'+(m>b?'Up to '+(sm!=null&&sb!=null&&sm>sb?stor(sm)+' ('+m+' ft)':m+' ft')+' with incentives (dashed).':'No incentive height.')+' The orange block on the map is the most an owner could build. Nothing is built unless an owner chooses to.</span></div>';
-  }else h+='<div class="hb"><span class="small">The draft height limit is not loaded for this lot.</span></div>';
+  }else if(LB.height)h+='<div class="hb"><span class="lab">Height limit in the draft</span><div class="v2"><span class="n">'+LB.height.stories+'<small> '+(LB.height.stories===1?'story':'stories')+'</small></span></div><p class="small">'+LB.height.ft+' ft. '+esc(LB.cite||'')+'.</p></div>';
+  else h+='<div class="hb"><span class="small">'+(LB.info?'The draft sets no height limit for this lot yet.':'The draft height limit is not loaded for this lot.')+'</span></div>';
   if(!M.ok&&M.text)h+='<p class="small">This lot '+esc(M.text)+', so it has no lot model yet.</p>';
   h+=blockHtml(pr.id);
   var why=[];
@@ -965,7 +968,7 @@ function lotHtml(){
   }else{
     if(feat)body+='<h3>About this site</h3><div class="prose"><p>'+esc(feat.plan)+'</p><p class="small">'+esc(feat.note)+'</p></div>';
     body+='<h3>About this lot</h3><div class="kv"><div><span>Parcel number</span><b class="mono">'+esc(short(pr.id))+'</b></div><div><span>Address</span><b>'+esc(st||TOWN.text.noAddress)+'</b></div><div><span>Today\'s zone</span><b>'+esc(pr.cur_name||'Not loaded')+(pr.cur?' ('+esc(pr.cur)+')':'')+'</b></div><div><span>Draft zone</span><b>'+esc(pr.draft_name||'Not found')+(pr.draft?' ('+esc(pr.draft)+')':'')+'</b></div><div><span>Lot size</span><b>'+pr.acres+' acres'+(pr.units>1?', '+pr.units+' condo units':'')+'</b></div><div><span>Buildings</span><b>'+(pr.bld_n?pr.bld_n+(pr.bld_n===1?' building, ':' buildings, ')+fmt(pr.bld_sqft)+' sq ft':'None found')+'</b></div></div>';
-    body+='<h3>How sure are we?</h3><div class="sure"><p>Each fact has a label.</p><p>'+chip('o')+' '+esc(TOWN.text.sureOfficial)+'</p><p>'+chip('p')+' '+esc(TOWN.text.surePdf)+'</p><p>'+chip('n')+' We do not have this yet.</p><p class="small">'+(lvok?'The lot model applies the draft\'s yard distances, lot width and lot size. Lot cover counts buildings only. Open space rules, overlays and existing building heights are not applied.':'Setbacks, lot coverage, density, overlays and existing building heights are not applied.')+'</p></div>';
+    body+='<h3>How sure are we?</h3><div class="sure"><p>Each fact has a label.</p><p>'+chip('o')+' '+esc(TOWN.text.sureOfficial)+'</p><p>'+chip('p')+' '+esc(TOWN.text.surePdf)+'</p><p>'+chip('n')+' We do not have this yet.</p><p class="small">'+(lvok&&!M.plain?'The lot model applies the draft\'s yard distances, lot width and lot size. Lot cover counts buildings only. Open space rules, overlays and existing building heights are not applied.':'Setbacks, lot coverage, density, overlays and existing building heights are not applied.')+'</p></div>';
   }
   h+='<div class="panel">'+body+'</div>';
   return h+FOOT+'</div>';
@@ -976,86 +979,163 @@ function lotHtml(){
    lot3d.js and three.js draw the 3D model and are fetched the first time a lot with a model is opened. */
 var IX=null,LOT=null,LV3=null,LVLOAD=null,lvAuto=null,lvPlayed=false,lvHeld=false;
 var THREE_URL='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-var CH={today:'Today',adu:'Backyard cottage',house:'House',duplex:'Duplex',fourplex:'Fourplex',apartments:'Apartment building'};
-var CHUSE={adu:'adu',house:'one_family',duplex:'two_to_four',fourplex:'two_to_four',apartments:'apartments'};
-var CHSAY={adu:'A small second home can go behind the house, if the house is a one-family home.',house:'One house can go on this lot.',duplex:'One building with two homes, each with its own front door.',fourplex:'Four homes in one building about the size of a large house.'};
+var CH={today:'Today',adu:'Backyard cottage',house:'House',duplex:'Duplex',fourplex:'Fourplex',townhomes:'Townhomes',apartments:'Apartment building',block:'New building',bonus:'With bonus floors'};
+var CHUSE={adu:'adu',house:'one_family',duplex:'two_to_four',fourplex:'two_to_four',townhomes:'townhome',apartments:'apartments'};
+var CHSAY={adu:'A small second home can go behind the house, if the house is a one-family home.',house:'One house can go on this lot.',duplex:'One building with two homes, each with its own front door.',fourplex:'Four homes in one building about the size of a large house.',townhomes:'A row of three or more homes side by side. Each one is two stories and has its own front door.',apartments:'One building with homes on every floor.'};
 GLYPH.now='<svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="3.4" fill="currentColor"/></svg>';
+function lotRules(id){var f=byId[id],d=f?DATA.rules.draft[f.properties.draft]:null;return {dr:d||null,L:(d&&d.lot)||{}};}
 function lotModel(id){
   if(LOT&&LOT.id===id)return LOT.m;
   var f=byId[id],m={ok:false,why:'rules'};
-  if(f&&IX){var d=DATA.rules.draft[f.properties.draft];if(d&&d.lot){try{m=ZonaLot.analyse(IX,id,d.lot);}catch(e){m={ok:false,why:'error'};}}}
+  if(f&&IX){var q=lotRules(id);try{m=ZonaLot.analyse(IX,id,q.dr&&q.dr.lot,q.dr&&q.dr.use);}catch(e){m={ok:false,why:'error'};}}
   LOT={id:id,m:m};return m;
 }
 function choiceOf(m,k){for(var i=0;i<m.choices.length;i++)if(m.choices[i].k===k)return m.choices[i];return m.choices[0];}
 function firstYes(m){for(var i=0;i<m.choices.length;i++)if(m.choices[i].state==='may')return m.choices[i].k;return 'today';}
 function chk(c,k){var r=null;(c.checks||[]).forEach(function(x){if(x&&x.k===k)r=x;});return r;}
 function homesTxt(n){return n===1?'1 home':n+' homes';}
-/* the short line on a choice card, also the label on a grey shape in the model */
+/* the rules for one choice: its own entry in the district's lot block (bonus floors borrow the building they sit on) */
+function typeOf(L,c){var T=L.types||{};return T[c.k==='bonus'&&L.bonus?L.bonus.of:c.k]||{};}
+function chName(L,c){var t=typeOf(L,c);return c.k==='bonus'?CH.bonus:(t.label||CH[c.k]);}
+function chGlyph(c){return c.state==='may'&&c.via&&c.via!=='P'?'ask':c.state;}
+/* the short line on a choice card, also the label on a shape in the model */
 function chShort(m,c){
   if(c.k==='today')return c.n?(c.n===1?'1 building':c.n+' buildings'):'Empty lot';
-  if(c.state==='may')return homesTxt(c.homes);
   if(c.state==='no')return c.listed===false?'Not allowed here':'Lot too small';
+  if(c.nodraw)return 'No drawing here';
+  if(c.state==='may')return c.open?'Up to '+stor(c.stories):c.example?c.homes+' in a row':homesTxt(c.homes);
   var w=chk(c,'width');
-  if(w&&w.state==='short')return 'Depends on your block';
+  if(c.nofront||(w&&w.state==='short'))return 'Depends on your block';
   if(c.full)return 'Lot may be too full';
   if(c.tight)return c.k==='adu'?'No clear spot':'Too little room';
   return 'Too close to call';
 }
-function lvHead(m){
+function lvHead(m,dr){
+  var L=(dr&&dr.lot)||{},big=null,bonus=null,row=false;
+  if(m.plain){
+    if(m.why==='rules')return L.info?'<b>'+esc(L.info.t)+'.</b> '+esc(L.info.w):dr?'The draft\'s lot rules for '+esc(dr.name)+' are not loaded yet. The model shows the lot as it is today.':'We found no draft district for this lot. The model shows the lot as it is today.';
+    return 'We can\'t draw what fits here, because this lot '+esc(m.text)+'. The model shows the lot as it is today. Tap a choice to see what the draft lists.';
+  }
+  m.choices.forEach(function(c){if(c.state!=='may')return;if(c.bonus)bonus=c;else if(c.open&&!big)big=c;else if(c.example)row=true;});
+  if(big)return (big.k==='apartments'?'An apartment building':'A building')+' up to <b>'+stor(big.stories)+'</b> could go on this lot.'+(bonus?' Up to '+bonus.stories+' with bonus floors.':'')+(m.most>1?' Smaller buildings with up to '+m.most+' homes fit too.':'');
   var st=stor(m.stories);
-  if(m.most>1)return 'Up to <b>'+m.most+' homes</b> could go on this lot, no taller than '+st+'.';
+  if(m.most>1)return 'Up to <b>'+m.most+' homes</b> in one building could go on this lot, no taller than '+st+'.'+(row?' A row of townhomes fits too.':'');
+  if(row)return 'A <b>row of townhomes</b> could go on this lot, no taller than '+st+'.';
   if(m.most===1)return '<b>One home</b> could go on this lot, no taller than '+st+'.';
-  return 'We can\'t tell how many homes could go on this lot. Tap a choice to see why.';
+  return 'We can\'t tell what could go on this lot. Tap a choice to see why.';
 }
 function citeLine(a){var o=[];a.forEach(function(v){if(v&&o.indexOf(v)<0)o.push(v);});
   /* "C.3.3(c)" says nothing new next to "C.3.3(c), note 6" */
   o=o.filter(function(v){return !o.some(function(x){return x!==v&&x.indexOf(v+',')===0;});});
   return o.map(function(v,i){return i?v.replace(/^Draft /,''):v;}).join('; ');}
+function joinAnd(a){return a.length>1?a.slice(0,-1).join(', ')+' and '+a[a.length-1]:a[0]||'';}
+/* what the draft asks of a building of this kind, in one sentence (used when the lot can't be drawn) */
+function ruleLine(L,t){
+  var p=[],r=t.rear||(t.rear_ft==null?L.rear:null);
+  if(t.area_sqft)p.push('a lot of at least '+fmt(t.area_sqft)+' sq ft');
+  if(t.width_ft)p.push('a lot at least '+t.width_ft+' ft wide');
+  if(t.front_ft)p.push(t.front_ft+' ft from the street');else if(L.front_block&&t.front_ft==null)p.push('the same distance from the street as the buildings next door');
+  if(t.side_ft)p.push(t.side_ft+' ft from each side line');
+  if(r)p.push(r.pct_depth+'% of the lot\'s depth at the back, and at least '+r.min_ft+' ft');else if(t.rear_ft)p.push(t.rear_ft+' ft from the back line');
+  if(t.cover_pct)p.push('buildings on no more than '+t.cover_pct+'% of the lot');
+  return p.length?'The draft asks for '+joinAnd(p)+'.':'';
+}
+/* where the dashed frame sits for this choice */
+function yardLine(c){
+  var s=c.set,p=[];if(!s)return '';
+  if(s.est)p.push(s.est_own?'about '+s.front_ft+' ft from the street, where today\'s building stands (the draft sets this by the buildings next door, and we found none to measure)':'about '+s.front_ft+' ft from the street, the same as the buildings next door on our drawing');
+  else if(s.fallback)p.push(s.front_ft+' ft from the street'+(s.front_max_ft?' (the draft allows '+s.front_ft+' to '+s.front_max_ft+' ft when the block has few buildings)':''));
+  else p.push(s.front_ft?s.front_ft+' ft from the street':'at the front lot line');
+  p.push(s.side_ft?s.side_ft+' ft from each side line':'no side yard');
+  if(s.rear_ft!=null)p.push(s.rear_ft?s.rear_ft+' ft from the back line':'no back yard');
+  var t=joinAnd(p);t=t.charAt(0).toUpperCase()+t.slice(1)+'.';
+  if(s.corner_side_ft)t+=' On a corner lot the inside side line gets '+s.corner_side_ft+' ft.';
+  if(s.res)t+=' Next to residential land the distances grow'+(s.side_res_ft?' to '+s.side_res_ft+' ft at the side':'')+(s.rear_res_ft?(s.side_res_ft?' and ':' to ')+s.rear_res_ft+' ft at the back':'')+'.';
+  if(s.alley&&s.alley_ft!=null)t+=s.alley_ft?' Along an alley it is '+s.alley_ft+' ft.':' Along an alley there is no side yard.';
+  return t;
+}
 function lvAnswer(m,c,dr){
-  var L=dr.lot,t=L.types[c.k]||{},ci=L.cites||{},cites=[],f='',st,w,wd=chk(c,'width'),ar=chk(c,'area'),ask=' '+esc(TOWN.text.checkWith);
+  var L=(dr&&dr.lot)||{},t=typeOf(L,c),ci=L.cites||{},cites=[],f='',st,w,wd=chk(c,'width'),ar=chk(c,'area'),ask=' '+esc(TOWN.text.checkWith),nm=chName(L,c),I=dr&&dr.incentives;
+  var kind=c.k==='fourplex'?'A triplex or fourplex':c.k==='block'?'A building here':'This kind of building';
   function fact(k,v){f+='<li><b>'+k+'</b><span>'+v+'</span></li>';}
-  function done(){return '<div class="acard '+st.c+(st.c==='nd'?' nd2':'')+'"><span class="q">'+esc(CH[c.k])+(c.homes&&c.state==='may'?' &middot; '+homesTxt(c.homes):'')+'</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH[st.c]+'</span>'+esc(st.t)+'</span><span class="w">'+w+'</span>'+(f?'<ul class="lvf">'+f+'</ul>':'')+(t.catch&&c.state==='may'?'<span class="c">'+esc(t.catch)+'</span>':'')+(cites.length?'<span class="src2">'+esc(citeLine(cites))+'</span>':'')+'</div>';}
+  function done(){return '<div class="acard '+st.c+(st.c==='nd'?' nd2':'')+'"><span class="q">'+esc(nm)+(c.homes&&c.state==='may'&&!c.example?' &middot; '+homesTxt(c.homes):'')+'</span><span class="s"><span class="gl" aria-hidden="true">'+GLYPH[st.c]+'</span>'+esc(st.t)+'</span><span class="w">'+w+'</span>'+(f?'<ul class="lvf">'+f+'</ul>':'')+(t.catch&&c.state==='may'?'<span class="c">'+esc(t.catch)+'</span>':'')+(cites.length?'<span class="src2">'+esc(citeLine(cites))+'</span>':'')+'</div>';}
   if(c.k==='today'){
     st={c:'now',t:'What is there now'};
-    w=c.n?(c.n===1?'One building':c.n+' buildings')+', about '+fmt(c.sqft)+' sq ft on the ground. That covers '+c.cover+'% of the lot.':'Our building outlines show nothing on this lot.';
-    fact('Lot','About '+m.width_ft+' ft wide and '+m.depth_ft+' ft deep. County records say '+m.acres+' acres, about '+fmt(m.sqft)+' sq ft.');
-    if(c.n)fact('Height','Not on file. Today\'s buildings are drawn at a typical house height, and we do not know how many homes are inside.');
+    var part=m.bld.some(function(b){return b.part;});
+    w=c.n?(c.n===1?'One building':c.n+' buildings')+', about '+fmt(c.sqft)+' sq ft on the ground'+(part?', counting only the part that stands on this lot':'')+'.'+(c.cover<=100?' That covers '+c.cover+'% of the lot.':''):'Our building outlines show nothing on this lot.';
+    /* a sliver or an odd shape: the width and depth we measure would mislead, so give the recorded size only */
+    var wdOk=m.width_ft>=10&&m.depth_ft>=10&&m.width_ft*m.depth_ft>m.sqft*0.6&&m.width_ft*m.depth_ft<m.sqft*2.5;
+    fact('Lot',(wdOk?'About '+m.width_ft+' ft wide and '+m.depth_ft+' ft deep. ':'')+'County records say '+m.acres+' acres, about '+fmt(m.sqft)+' sq ft.');
+    if(c.n)fact('Height','Not on file. Today\'s buildings are drawn '+(m.flat?'two stories tall':'at a typical house height')+', and we do not know how many homes are inside.');
+    if(m.plain&&L.info&&L.cite)cites.push(L.cite);
     return done();
   }
-  var v=dr.use?dr.use[CHUSE[c.k]]:null;
-  if(c.state==='may'){st=ST[v]||ST.P;w=CHSAY[c.k]+' '+esc(st.w);cites.push(t.cite,L.cite);}
-  else if(c.state==='no'){st={c:'no',t:'No'};
-    if(c.listed===false){var ul='';USE_LABELS.forEach(function(u){if(u[0]===CHUSE[c.k])ul=u[1].toLowerCase();});w='The draft does not list '+esc(ul)+' for '+esc(dr.name)+'.';}
-    else{w='The lot is too small. A triplex or fourplex needs '+fmt(ar.need)+' sq ft.';cites.push(t.cite);}}
-  else{st={c:'nd',t:chShort(m,c)};cites.push(t.cite,L.cite);
-    if(ar&&ar.state==='close')w='A triplex or fourplex needs '+fmt(ar.need)+' sq ft, and county records put this lot at about '+fmt(ar.have)+'. That is too close to call.'+ask;
+  var v=c.via||(dr&&dr.use?dr.use[t.use||CHUSE[c.k]]:null);
+  if(c.state==='no'){st={c:'no',t:'No'};
+    if(c.listed===false){var ul='';USE_LABELS.forEach(function(u){if(u[0]===(t.use||CHUSE[c.k]))ul=u[1].toLowerCase();});w='The draft does not list '+esc(ul||nm.toLowerCase())+' for '+esc(dr.name)+'.';}
+    else{w='The lot is too small. '+kind+' needs '+fmt(ar.need)+' sq ft.';cites.push(t.cite,L.cite);}
+    if(ar)fact('Lot size',m.acres+' acres in county records, about '+fmt(ar.have)+' sq ft.');
+    return done();
+  }
+  if(c.nodraw){st={c:'nd',t:'No drawing here'};
+    w='The draft lists this for '+esc(dr.name)+'. '+esc((ST[v]||ST.P).w)+' We can\'t draw it, because this lot '+esc(m.text)+'. So we can\'t say whether it fits.'+ask;
+    var rl=ruleLine(L,t);if(rl)fact('The rule',esc(rl));
+    if(ar)fact('Lot size',m.acres+' acres in county records, about '+fmt(ar.have)+' sq ft.'+(ar.state==='close'?' That is too close to '+fmt(ar.need)+' to call.':''));
+    cites.push(t.cite,L.cite);return done();
+  }
+  if(c.state==='may'){
+    if(c.bonus){st={c:'may',t:'Yes, if the extra floors are earned'};w='The same building, with the extra stories the draft lets an owner earn: from '+stor(c.base_stories)+' up to '+stor(c.stories)+'.';cites.push(L.bonus.cite);}
+    else{st=ST[v]||ST.P;w=esc(t.say||CHSAY[c.k])+' '+esc(st.w);cites.push(t.cite,L.cite);}
+  }else{st={c:'nd',t:chShort(m,c)};cites.push(t.cite,L.cite);
+    if(ar&&ar.state==='close')w=kind+' needs '+fmt(ar.need)+' sq ft, and county records put this lot at about '+fmt(ar.have)+'. That is too close to call.'+ask;
+    else if(c.nofront){w='The draft sets the front yard here by the buildings next door, and our drawing shows none to measure.'+ask;cites.push(L.front_block&&L.front_block.cite);}
     else if(wd&&wd.state==='short'){w='This lot is about '+wd.have+' ft wide where a building would start. The draft asks for '+wd.need+' ft, or the average lot width on your side of the block if that is less. We do not measure block averages.'+ask;cites.push(ci.width,ci.block);}
     else if(wd&&wd.state==='close'){w='This lot is about '+wd.have+' ft wide and the draft asks for '+wd.need+'. County lot lines are only good to a few feet, so that is too close to call.'+ask;cites.push(ci.width);}
     else if(c.full){w='With a cottage, buildings would cover about '+c.cover+'% of the lot. The draft\'s limit is '+c.cover_max+'%, and driveways and paving count too.'+ask;cites.push(ci.cover);}
-    else if(c.k==='adu')w='On our drawing there is no spot that is '+t.sep_ft+' ft from the house, behind its front wall and inside the yard lines. Building outlines are rough.'+ask;
-    else{w='After the yard distances there is too little room left to draw a building. On a block where houses sit closer to the lot lines, the draft uses the block\'s average.'+ask;cites.push(ci.block);}
+    else if(c.k==='adu')w='On our drawing there is no spot that is '+c.sep_ft+' ft from the house, behind its front wall and inside the yard lines. Building outlines are rough.'+ask;
+    else if(c.k==='townhomes'){w='After the yard distances there is not enough room to draw three townhomes side by side. On a block where buildings sit closer to the lot lines, the draft uses the block\'s average.'+ask;cites.push(ci.block);}
+    else{w='After the yard distances there is too little room left to draw a building. On a block where buildings sit closer to the lot lines, the draft uses the block\'s average.'+ask;cites.push(ci.block);}
   }
   if(ar)fact('Lot size',m.acres+' acres in county records, about '+fmt(ar.have)+' sq ft.'+(c.state==='may'?' Needs '+fmt(ar.need)+'.':''));
   if(c.state==='may'){
-    if(wd)fact('Lot width','About '+wd.have+' ft. The draft asks for at least '+wd.need+'.');
-    if(c.k==='adu'){fact('Size','Drawn at '+fmt(c.sqft)+' sq ft. The cap is '+fmt(c.cap)+' sq ft or '+c.share+'% of the house\'s floor area, whichever is smaller. We do not know the floor area.');fact('Lot cover','With the cottage, buildings cover about '+c.cover+'% of the lot. The limit is '+c.cover_max+'%, and driveways and paving count too.');}
-    else if(c.ex)fact('Example',stor(m.stories)+' and '+fmt(c.sqft)+' sq ft on the ground'+(m.bld.length?', in place of today\'s building':'')+'. That covers '+c.cover+'% of the lot. The limit is '+c.cover_max+'%, and driveways and paving count too.');
+    var swap=m.bld.length?', in place of today\'s '+(m.bld.length>1?'buildings':'building'):'',cov=c.cover_max?' The limit is '+c.cover_max+'%, and driveways and paving count too.':' The draft sets no lot cover limit here.';
+    if(wd&&!c.bonus)fact('Lot width','About '+wd.have+' ft. The draft asks for at least '+wd.need+'.');
+    if(c.bonus){
+      if(I&&I.options)fact('How they are earned',I.options.map(function(o){return esc(o.t)+' ('+storDelta(o.st)+(o.drop?', and Council has asked to drop it':'')+')';}).join('. ')+'. No more than '+I.max+' extra '+(I.max===1?'story':'stories')+' in total.'+(I.first?' '+esc(I.first):''));
+      fact('Height','Up to '+stor(c.stories)+' and '+c.height_ft+' ft. Without bonus floors the limit is '+stor(c.base_stories)+' and '+c.base_ft+' ft.');
+      if(I&&I.pending&&I.pending.length)fact('May change','Council has asked for changes to this list. The What changes tab has them.');
+    }
+    else if(c.k==='adu'){fact('Size','Drawn at '+fmt(c.sqft)+' sq ft. The cap is '+fmt(c.cap)+' sq ft or '+c.share+'% of the house\'s floor area, whichever is smaller. We do not know the floor area.');fact('Lot cover','With the cottage, buildings cover about '+c.cover+'% of the lot. The limit is '+c.cover_max+'%, and driveways and paving count too.');}
+    else if(c.example){fact('Example',c.homes+' homes side by side, each about 20 ft wide and 2 stories'+swap+'. That covers '+c.cover+'% of the lot.'+cov);fact('How many','The draft sets no number. The yards, lot cover and parking decide how many fit.');}
+    else if(c.open){fact('Example',stor(c.stories)+' and '+fmt(c.sqft)+' sq ft on the ground'+swap+'. That covers '+c.cover+'% of the lot.'+cov);
+      if(c.k==='apartments'||t.use==='apartments')fact('Homes','The draft sets no number of homes. The yards, the height and the parking decide how many fit.');}
+    else if(c.ex)fact('Example',stor(c.stories)+' and '+fmt(c.sqft)+' sq ft on the ground'+swap+'. That covers '+c.cover+'% of the lot.'+cov);
+    if(!c.bonus){var yl=yardLine(c);if(yl&&L.max_depth_ft&&(c.open||c.k==='townhomes')){yl+=' No building can be more than '+L.max_depth_ft+' ft deep.';cites.push(ci.depth);}if(yl){fact('Yards',esc(yl));cites.push(ci.yards,c.set.rear_ft!=null?ci.rear:null,c.set.est||c.set.fallback?L.front_block&&L.front_block.cite:null,c.set.corner_side_ft?ci.corner_side:null);}}
     if(c.park){fact('Parking',c.park+(c.park===1?' space':' spaces')+' off the street.'+(t.parking_note?' '+esc(t.parking_note):''));cites.push(ci.parking);}
-    cites.push(ci.cover);
+    else if(t.parking_txt&&!c.bonus){fact('Parking',esc(t.parking_txt));cites.push(ci.parking);}
+    if(c.cover_max)cites.push(ci.cover);
   }
   return done();
 }
 function lvHow(m,dr){
-  var s=m.set,ci=dr.lot.cites||{},p=[];
-  p.push('White is there today. Orange is one example of what could be built, and an owner could choose a different shape. Nothing is built unless the owner chooses to.');
-  p.push('The dashed teal frame is the rule for a new building. It stays '+s.front_ft+' ft from the street, '+s.side_ft+' ft from each side line'+(s.rear_ft!=null?' and '+s.rear_ft+' ft from the back line':'')+', and stops at '+stor(m.stories)+' ('+m.height_ft+' ft).');
-  if(m.corner)p.push('This is a corner lot, so both street sides get the '+s.front_ft+' ft distance. We treat the shorter street side as the front. The owner picks which other side is the back.');
-  if(m.through)p.push('This lot runs from one street to another, so both ends get the '+s.front_ft+' ft distance.');
-  p.push('On a block where the houses sit closer than that, the draft uses the block\'s average. We do not measure block averages, so the real frame can be larger.');
-  if(m.outside)p.push('Part of today\'s building sits outside the frame. The frame is for new buildings.');
+  var L=(dr&&dr.lot)||{},s=m.set,ci=L.cites||{},p=[],tall=m.choices.some(function(c){return c.open&&c.state==='may';});
+  if(m.plain){
+    p.push('White is there today. The dark line is the lot.');
+    if(m.why!=='rules')p.push('This lot '+m.text+', so we can\'t work out where a new building could sit. The choices say what the draft lists and what it asks for.');
+  }else{
+    p.push('White is there today. Orange is one example of what could be built, and an owner could choose a different shape. Nothing is built unless the owner chooses to.');
+    p.push('The dashed teal frame is the rule for a new building: how far it stays from each lot line and how tall it may be. The distances are listed on each choice, under Yards.');
+    if(tall)p.push('Each orange line is one story.'+(L.bonus?' See-through floors at the top are bonus floors. An owner has to earn them.':''));
+    if(m.corner)p.push('This is a corner lot, so both street sides get the front distance. We treat the shorter street side as the front. The owner picks which other side is the back.');
+    if(m.through)p.push('This lot runs from one street to another, so both ends get the front distance.');
+    if(L.kind!=='street'&&!L.front_block)p.push('On a block where the buildings sit closer than that, the draft uses the block\'s average. We do not measure block averages, so the real frame can be larger.');
+    if(L.front_block)p.push('The draft sets the front yard here by the buildings next door. We measure that on our building outlines, which are rough.');
+    (L.notes||[]).forEach(function(x){p.push(x);});
+    if(m.outside)p.push('Part of today\'s building sits outside the frame. The frame is for new buildings.');
+  }
   if(state.base==='photo'&&BM&&BM.lotPhoto)p.push('The ground is an aerial photo. It shows what is there now, even under an example building.'+(BM.photoNote?' '+BM.photoNote:''));
   p.push('We have no street map, so we work out which side faces the street from the lot lines. County lot lines are good to a few feet. Open space rules and overlays are not applied.');
-  return '<details class="mored lvhow"><summary class="more">How to read the model</summary><div class="prose">'+p.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+'<p class="small">'+esc(citeLine([ci.yards,ci.rear,m.corner?ci.corner:null,ci.block]))+'</p></div></details>';
+  return '<details class="mored lvhow"><summary class="more">How to read the model</summary><div class="prose">'+p.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+'<p class="small">'+esc(citeLine(m.plain?[L.cite]:[L.cite,ci.yards,ci.rear,m.corner?ci.corner:null,L.kind!=='street'?ci.block:null]))+'</p></div></details>';
 }
 /* a flat plan of the same lot: shown while the 3D model loads, and kept when the browser has no WebGL */
 function planSvg(m,c,today){
@@ -1064,11 +1144,12 @@ function planSvg(m,c,today){
   var s='<svg viewBox="0 0 '+W.toFixed(1)+' '+H.toFixed(1)+'" role="img" aria-label="Flat plan of the lot, street at the bottom"><rect width="'+W.toFixed(1)+'" height="'+H.toFixed(1)+'" rx="1.5" fill="var(--road)"/>';
   m.around.forEach(function(r){s+='<polygon points="'+pts(r)+'" fill="var(--lawn)" stroke="var(--lawn-line)" stroke-width=".2"/>';});
   m.aroundB.forEach(function(b){s+='<polygon points="'+pts(b.ring)+'" fill="var(--bld)" stroke="var(--line-ctl)" stroke-width=".2"/>';});
-  s+='<polygon points="'+pts(m.lot)+'" fill="var(--panel)" stroke="var(--ink)" stroke-width=".5" stroke-linejoin="round"/>';
-  var isNew=!today&&c.k!=='today';
-  if(isNew&&m.build.length>2)s+='<polygon points="'+pts(m.build)+'" fill="none" stroke="var(--brand)" stroke-width=".35" stroke-dasharray="1.3 .9"/>';
+  [m.lot].concat(m.more||[]).forEach(function(r){s+='<polygon points="'+pts(r)+'" fill="var(--panel)" stroke="var(--ink)" stroke-width=".5" stroke-linejoin="round"/>';});
+  var isNew=!today&&c.k!=='today',ok=c.state==='may';
+  if(isNew&&c.build&&c.build.length>2)s+='<polygon points="'+pts(c.build)+'" fill="none" stroke="var(--brand)" stroke-width=".35" stroke-dasharray="1.3 .9"/>';
   if(!isNew||c.keep)m.bld.forEach(function(b){s+='<polygon points="'+pts(b.ring)+'" fill="var(--bld)" stroke="var(--ink)" stroke-width=".3"/>';});
-  if(isNew&&c.ex){var q=c.ex,ok=c.state==='may';s+='<rect x="'+(q.u0-p.u0).toFixed(1)+'" y="'+(p.v1-q.v1).toFixed(1)+'" width="'+(q.u1-q.u0).toFixed(1)+'" height="'+(q.v1-q.v0).toFixed(1)+'" fill="'+(ok?'var(--accent-soft)':'none')+'" stroke="'+(ok?'var(--env-draft)':'var(--muted)')+'" stroke-width=".4"'+(ok?'':' stroke-dasharray="1.3 .9"')+'/>';}
+  if(isNew&&c.poly&&ok)s+='<polygon points="'+pts(c.poly)+'" fill="var(--accent-soft)" stroke="var(--env-draft)" stroke-width=".4"/>';
+  else if(isNew&&c.ex){var q=c.ex;s+='<rect x="'+(q.u0-p.u0).toFixed(1)+'" y="'+(p.v1-q.v1).toFixed(1)+'" width="'+(q.u1-q.u0).toFixed(1)+'" height="'+(q.v1-q.v0).toFixed(1)+'" fill="'+(ok?'var(--accent-soft)':'none')+'" stroke="'+(ok?'var(--env-draft)':'var(--muted)')+'" stroke-width=".4"'+(ok?'':' stroke-dasharray="1.3 .9"')+'/>';}
   return s+'</svg>';
 }
 function lvInset(){var r=$('lv').getBoundingClientRect(),t=document.querySelector('.lvtop').getBoundingClientRect(),l=document.querySelector('.lvlow').getBoundingClientRect();return {top:Math.max(0,t.bottom-r.top),bottom:Math.max(0,r.bottom-l.top)};}
@@ -1082,7 +1163,7 @@ function lvSync(scroll){
   if(on&&scroll){var tr=$('lvTray');try{tr.scrollTo({left:on.offsetLeft-tr.clientWidth/2+on.clientWidth/2,behavior:CALM.matches?'auto':'smooth'});}catch(e){}}
   if(a)a.innerHTML=lvAnswer(m,c,dr);
   $('lvplan').innerHTML=planSvg(m,c,lvHeld);
-  $('lvgl').setAttribute('aria-label','3D model of the lot. '+CH[c.k]+': '+chShort(m,c)+'.');
+  $('lvgl').setAttribute('aria-label','3D model of the lot. '+chName((dr&&dr.lot)||{},c)+': '+chShort(m,c)+'.');
 }
 function lvPick(k,animate,auto){
   if(!auto)lvStop();
@@ -1092,8 +1173,8 @@ function lvPick(k,animate,auto){
   lvSync(true);
 }
 function lvRender(){
-  var m=lotModel(state.sel);
-  $('lvTray').innerHTML=m.choices.map(function(c){var g=c.state;return '<button type="button" class="lvc '+g+'" data-pick="'+c.k+'" aria-pressed="false"><span class="gl" aria-hidden="true">'+GLYPH[g]+'</span><span><b>'+esc(CH[c.k])+'</b><small>'+esc(chShort(m,c))+'</small></span></button>';}).join('');
+  var m=lotModel(state.sel),L=lotRules(state.sel).L;
+  $('lvTray').innerHTML=m.choices.map(function(c){var g=chGlyph(c);return '<button type="button" class="lvc '+g+'" data-pick="'+c.k+'" aria-pressed="false"><span class="gl" aria-hidden="true">'+GLYPH[g]+'</span><span><b>'+esc(chName(L,c))+'</b><small>'+esc(chShort(m,c))+'</small></span></button>';}).join('');
   lvViews();lvSync(false);
 }
 function loadScript(u){return new Promise(function(ok,no){var s=document.createElement('script');s.src=u;s.onload=function(){ok();};s.onerror=function(){no(new Error(u));};document.head.appendChild(s);});}
@@ -1103,7 +1184,8 @@ function lvLoad(){
   LVLOAD=loadScript(THREE_URL).then(function(){return loadScript('lot3d.js');}).then(function(){
     LV3=ZonaLot3D.mount({stage:$('lv'),canvas:$('lvgl'),tags:$('lvtags'),calm:CALM.matches,inset:lvInset,onTouch:lvStop,
       label:function(c){return chShort(lotModel(state.sel),c);},
-      limit:function(m){return 'Height limit · '+stor(m.stories)+', '+m.height_ft+' ft';},
+      limit:function(m,c){var b=c&&c.bonus;return 'Height limit · '+stor(b?c.stories:m.stories)+', '+(b?c.height_ft:m.height_ft)+' ft';},
+      baseLabel:function(c){return 'Without bonus floors · '+stor(c.base_stories);},
       onView:function(v){state.lview=v;lvViews();},
       photo:function(b,w,h){return state.base==='photo'&&BM&&BM.lotPhoto?BM.lotPhoto.replace('{bbox}',b.join(',')).replace('{w}',w).replace('{h}',h):null;}});
     $('lv').classList.remove('flat');lvShow();
@@ -1254,6 +1336,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
     map.addLayer({id:'ask-line',type:'line',source:'parcels',layout:{visibility:'none'},filter:['==',['get','id'],''],paint:{'line-color':css('--brand'),'line-width':1.2,'line-dasharray':[2,1.5]}},'bld');
     mapReady=true;
     syncMap();retheme();fitHome(0);readHash();
+    window.addEventListener('hashchange',readHash);   /* a pasted or edited link opens its lot without a reload */
     $('loading').hidden=true;
     map.on('click','parcels-fill',function(e){var f=e.features&&e.features[0];if(f)select(f.properties.id,false);});
     map.on('mousemove','parcels-fill',function(e){
