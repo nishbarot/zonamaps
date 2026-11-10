@@ -1,7 +1,8 @@
 /* zōna lot math. Pure geometry, no drawing: it runs in the browser and in Node (tools/check_lots.js).
    For one lot it works out which side faces the street, where a new building could sit under the
-   draft's yard distances, and whether each housing choice fits. All numbers come from the "lot"
-   block of the lot's draft district in data/rules.json. Nothing town-specific lives in this file.
+   draft's yard distances, and whether each choice fits: a cottage, a house, a duplex, a fourplex,
+   townhomes, apartments, or one larger building with the stories the draft allows. All numbers come
+   from the "lot" block of the lot's draft district in data/rules.json. Nothing town-specific lives here.
 
    Frame used in the results: metres, u runs along the front lot line (left to right when you stand
    in the street and face the lot), v runs from the front lot line into the lot. */
@@ -59,6 +60,7 @@ function makeIndex(parcels,buildings){
   (buildings?buildings.features:[]).forEach(function(f){var o=outer(f.geometry);if(!o)return;var r=ring(o),c=centroid(r);B.push({ring:r,c:c});var k=Math.floor(c[0]/CELL)+','+Math.floor(c[1]/CELL);(bgrid[k]||(bgrid[k]=[])).push(B.length-1);});
   function near(g,b){var seen={},o=[];for(var x=Math.floor(b[0]/CELL);x<=Math.floor(b[2]/CELL);x++)for(var y=Math.floor(b[1]/CELL);y<=Math.floor(b[3]/CELL);y++){(g[x+','+y]||[]).forEach(function(i){if(!seen[i]){seen[i]=1;o.push(i);}});}return o;}
   return {lots:lots,
+    ll:function(p){return [lon0+p[0]/kx,lat0+p[1]/ky];},   /* metres back to longitude and latitude */
     lotAt:function(p,skip){var c=near(grid,[p[0],p[1],p[0],p[1]]);for(var i=0;i<c.length;i++){var o=L[c[i]];if(o.id===skip)continue;if(p[0]<o.bb[0]||p[0]>o.bb[2]||p[1]<o.bb[1]||p[1]>o.bb[3])continue;for(var k=0;k<o.rings.length;k++)if(inRing(p,o.rings[k]))return o;}return null;},
     lotsIn:function(b){return near(grid,b).map(function(i){return L[i];}).filter(function(o){return !(o.bb[2]<b[0]||o.bb[0]>b[2]||o.bb[3]<b[1]||o.bb[1]>b[3]);});},
     bldIn:function(b){return near(bgrid,b).map(function(i){return B[i];}).filter(function(o){return o.c[0]>=b[0]&&o.c[0]<=b[2]&&o.c[1]>=b[1]&&o.c[1]<=b[3];});}};
@@ -79,83 +81,176 @@ function sideKind(ix,o,a,b,n){
 
 /* a lot with no model: code, and words that finish the sentence "This lot ..." */
 function why(code,text){return {ok:false,why:code,text:text};}
+var BIG=25;          /* acres: beyond this a lot is a campus or a golf course, and a model of it shows nothing */
+var USEKEY={adu:'adu',house:'one_family',duplex:'two_to_four',fourplex:'two_to_four',townhomes:'townhome',apartments:'apartments'};
+var ORDER=['adu','house','duplex','fourplex','townhomes','apartments','block'];
+var UNIT=20*FT;      /* a townhome is drawn 20 ft wide */
 
-/* ---------- the analysis ---------- */
-function analyse(ix,id,R){
+/* ---------- the analysis ----------
+   R is the "lot" block of the lot's draft district (may be missing). uses is that district's use table, so a
+   choice the draft does not list reads "no" and one that needs a hearing says so.
+   Every lot up to 25 acres gets a model. When the yard lines cannot be drawn (odd shape, no rules, no clear
+   street side) the model is "plain": the lot, its buildings and its neighbours, with the choices as words only. */
+function analyse(ix,id,R,uses){
   var o=ix.lots[id];if(!o)return why('none','');
-  var pr=o.pr,T=R&&R.types;
-  if(!T)return why('rules','');
-  if(!o.simple)return why('shape','is in more than one piece');
-  if(pr.units>1)return why('condo','is split into condo units');
+  R=R||{};
+  var pr=o.pr,T=R.types||null,H=R.height||null,i;
+  if(pr.acres>BIG)return why('size','is larger than '+BIG+' acres');
   var sq=pr.acres*ACRE;
-  if(pr.acres<0.03||pr.acres>(R.max_acres||1))return why('size',pr.acres<0.03?'is very small':'is larger than '+(R.max_acres||1)+(R.max_acres>1?' acres':' acre'));
-  var ring=simplify(o.rings[0],1.0);
-  if(area(ring)<0)ring.reverse();                       /* counter-clockwise */
-  if(ring.length<3||ring.length>8||!isConvex(ring,2.0))return why('shape','has an irregular shape');
-  var n=ring.length,E=[],i;
-  for(i=0;i<n;i++){var a=ring[i],b=ring[(i+1)%n],e=sub(b,a),l=len(e),nn=[e[1]/l,-e[0]/l];E.push({a:a,b:b,len:l,n:nn,kind:sideKind(ix,o,a,b,nn)});}
+  var rs=o.rings.map(function(r){r=simplify(r,1.0);if(area(r)<0)r.reverse();return r;}).filter(function(r){return r.length>=3;}).sort(function(a,b){return area(b)-area(a);});
+  if(!rs.length)return why('shape','has no outline we can draw');
+  var ring=rs[0],plain=null;
+  if(!T)plain={code:'rules',text:''};
+  else if(!o.simple)plain={code:'shape',text:'is in more than one piece'};
+  else if(pr.units>1)plain={code:'condo',text:'is split into condo units'};
+  else if(pr.acres<0.03)plain={code:'size',text:'is very small'};
+  else if(pr.acres>(R.max_acres||1))plain={code:'size',text:'is larger than '+(R.max_acres||1)+((R.max_acres||1)>1?' acres':' acre')};
+  else if(ring.length>8||!isConvex(ring,2.0))plain={code:'shape',text:'has an irregular shape'};
+
+  var n=ring.length,E=[];
+  for(i=0;i<n;i++){var a=ring[i],b=ring[(i+1)%n],e=sub(b,a),l=len(e)||1e-6,nn=[e[1]/l,-e[0]/l];E.push({a:a,b:b,len:l,n:nn,kind:n<=24?sideKind(ix,o,a,b,nn):'lot'});}
   /* street frontages: runs of street sides that point roughly the same way (a curved or two-part front is one frontage) */
   var G=[],first=0;
   for(i=0;i<n;i++){if(E[i].kind!=='street'||E[(i+n-1)%n].kind!=='street'||dot(E[i].n,E[(i+n-1)%n].n)<0.9){first=i;break;}}
   for(var k=0;k<n;k++){var e1=E[(first+k)%n];if(e1.kind!=='street')continue;var g=G[G.length-1];
     if(g&&g.last===(first+k+n-1)%n&&dot(g.es[g.es.length-1].n,e1.n)>=0.9){g.es.push(e1);g.last=(first+k)%n;}else G.push({es:[e1],last:(first+k)%n});}
   G.forEach(function(g){g.a=g.es[0].a;g.b=g.es[g.es.length-1].b;var c=sub(g.b,g.a);g.len=len(c);g.n=[c[1]/g.len,-c[0]/g.len];});
-  if(!G.length)return why('street','does not show us which side faces the street');
-  if(!E.some(function(e){return e.kind==='lot';}))return why('street','does not show us which side faces the street');
+  var noFront=!G.length||!E.some(function(e){return e.kind==='lot';});
+  if(noFront&&!plain)plain={code:'street',text:'does not show us which side faces the street'};
 
   /* buildings on the lot, in metres */
-  var mine=ix.bldIn(o.bb).filter(function(b){return inRing(b.c,ring);}).sort(function(x,y){return Math.abs(area(y.ring))-Math.abs(area(x.ring));});
+  var mine=ix.bldIn(o.bb).filter(function(b){return rs.some(function(r){return inRing(b.c,r);});});
+  /* Where buildings stand wall to wall, one outline often covers several lots and its middle falls on only one of
+     them. There, a lot also gets the part of any outline that stands on it (lots with a simple convex shape only). */
+  var spanned=!!R.flat_today&&o.simple&&ring.length<=8&&isConvex(ring,2.0),spans=[];
+  if(spanned){var pad=30,near=ix.bldIn([o.bb[0]-pad,o.bb[1]-pad,o.bb[2]+pad,o.bb[3]+pad]);
+    mine=[];near.forEach(function(b){var br=b.ring.slice();if(area(br)<0)br.reverse();var part=br,rest=[];
+      for(var j=0;j<ring.length&&part.length>=3;j++){var a=ring[j],c=ring[(j+1)%ring.length],e=sub(c,a),l=len(e)||1e-6,nn=[e[1]/l,-e[0]/l],d=dot(a,nn);
+        var off=clip(part,[-nn[0],-nn[1]],-d);if(off.length>=3)rest.push(off);part=clip(part,nn,d);}
+      if(part.length<3)return;var pa=Math.abs(area(part)),ba=Math.abs(area(br));
+      if(pa>=ba*0.98)mine.push(b);
+      /* the rest of that outline stays with the neighbours, so it is not drawn twice */
+      else if(pa>=15&&(pa>=0.1*ba||pa>=0.2*Math.abs(area(ring)))){mine.push({ring:part,c:centroid(part),part:true});spans.push({b:b,rest:rest});}});}
+  mine.sort(function(x,y){return Math.abs(area(y.ring))-Math.abs(area(x.ring));});
   /* the front: the only frontage. With more than one, the shorter one (a corner lot's narrow end), and when
      they are about the same length, the one nearest the main building. Clipped corners are never the front. */
-  var cand=G.filter(function(g){return g.len>=6;});if(!cand.length)cand=G;
-  var mc=mine.length?mine[0].c:null;
-  cand.sort(function(x,y){if(Math.abs(x.len-y.len)>0.15*Math.max(x.len,y.len))return x.len-y.len;if(mc)return segDist(mc,x.a,x.b)-segDist(mc,y.a,y.b);return x.len-y.len;});
-  var front=cand[0];
-  var nf=front.n,vdir=[-nf[0],-nf[1]],udir=[vdir[1],-vdir[0]],org=[(front.a[0]+front.b[0])/2,(front.a[1]+front.b[1])/2];
+  var front=null,udir,vdir,org;
+  if(!noFront){
+    var cand=G.filter(function(g){return g.len>=6;});if(!cand.length)cand=G;
+    var mc=mine.length?mine[0].c:null;
+    cand.sort(function(x,y){if(Math.abs(x.len-y.len)>0.15*Math.max(x.len,y.len))return x.len-y.len;if(mc)return segDist(mc,x.a,x.b)-segDist(mc,y.a,y.b);return x.len-y.len;});
+    front=cand[0];vdir=[-front.n[0],-front.n[1]];udir=[vdir[1],-vdir[0]];org=[(front.a[0]+front.b[0])/2,(front.a[1]+front.b[1])/2];
+  }else{
+    /* no street side found: lay the lot along its longer direction */
+    var mr=minRect(ring),ang=mr.w>=mr.d?mr.ang:mr.ang+Math.PI/2;udir=[Math.cos(ang),Math.sin(ang)];vdir=[-udir[1],udir[0]];
+    var lo=1e12,u0=1e12,u1=-1e12;ring.forEach(function(p){var u=dot(p,udir),v=dot(p,vdir);if(v<lo)lo=v;if(u<u0)u0=u;if(u>u1)u1=u;});
+    org=[udir[0]*(u0+u1)/2+vdir[0]*lo,udir[1]*(u0+u1)/2+vdir[1]*lo];
+  }
   function uv(p){var q=sub(p,org);return [dot(q,udir),dot(q,vdir)];}
+  function world(q){return [org[0]+q[0]*udir[0]+q[1]*vdir[0],org[1]+q[0]*udir[1]+q[1]*vdir[1]];}
   var lot=ring.map(uv);if(area(lot)<0)lot.reverse();
+  var more=rs.slice(1).map(function(r){return r.map(uv);});
   var sides=[],corner=false,through=false;
-  for(i=0;i<n;i++){var e2=E[i],d=dot(e2.n,nf),isMain=front.es.indexOf(e2)>=0,st=e2.kind==='street';
+  if(front)for(i=0;i<n;i++){var e2=E[i],d=dot(e2.n,front.n),isMain=front.es.indexOf(e2)>=0,st=e2.kind==='street';
     if(st&&!isMain){if(d<=-0.6)through=true;else corner=true;}
-    sides.push({a:uv(e2.a),b:uv(e2.b),len:e2.len,kind:e2.kind,role:st?'front':d<=-0.6?'rear':'side',main:isMain});}
+    sides.push({a:uv(e2.a),b:uv(e2.b),len:e2.len,kind:e2.kind,role:st?'front':d<=-0.6?'rear':'side',main:isMain,e:e2});}
   var hasRear=sides.some(function(s){return s.role==='rear';});
-  var lb=bbox(lot),depth=lb[3];
+  var all=lot.slice();more.forEach(function(r){all=all.concat(r);});
+  var lb=bbox(all),depth=lb[3];
 
-  var house=T.house||T.duplex,ffront=house.front_ft*FT,fside=house.side_ft*FT;
-  /* lot width: between the side lines at the back edge of the front yard, held for 30 ft (H.2.1(c)) */
-  var w1=span(lot,ffront),w2=span(lot,Math.min(depth-0.5,ffront+30*FT));
-  var width=Math.min(w1?w1[1]-w1[0]:0,w2?w2[1]-w2[0]:1e9);
-  /* rear yard: a share of the depth from the front building line to the nearest point of the rear line */
-  var rearNear=1e9;sides.forEach(function(s){if(s.role==='rear')rearNear=Math.min(rearNear,s.a[1],s.b[1]);});
-  var rear=hasRear?Math.max(R.rear.min_ft*FT,R.rear.pct_depth/100*(rearNear-ffront)):0;
-
-  /* where a new building could sit */
-  var build=lot.slice();
-  sides.forEach(function(s){var set=s.role==='front'?ffront:s.role==='rear'?rear:fside;s.set_ft=Math.round(set/FT);if(build.length<3)return;var e=sub(s.b,s.a),l=len(e),nn=[e[1]/l,-e[0]/l];build=clip(build,nn,dot(s.a,nn)-set);});
-  var bArea=build.length>=3?Math.abs(area(build)):0,bb=bArea?bbox(build):null;
+  /* what is next door on each side that touches another lot or an alley: the lot there, and whether it is zoned residential */
+  sides.forEach(function(s){if(s.kind!=='lot'&&s.kind!=='alley')return;var e=s.e,p=[(e.a[0]+e.b[0])/2,(e.a[1]+e.b[1])/2];
+    for(var d=1.5;d<=12;d+=1.5){var q=ix.lotAt([p[0]+e.n[0]*d,p[1]+e.n[1]*d],id);if(q){s.next=q;s.res=/^res-/.test(q.pr.draft_class||'');break;}}});
 
   /* today's buildings in the lot frame */
-  var bl=mine.map(function(b){var r=b.ring.map(uv);return {ring:r,sqft:Math.abs(area(r))/SQFT,rect:minRect(r)};});
+  var bl=mine.map(function(b){var r=b.ring.map(uv);return {ring:r,sqft:Math.abs(area(r))/SQFT,rect:minRect(r),part:!!b.part};});
   var main=bl[0]||null,covered=bl.reduce(function(s,b){return s+b.sqft;},0);
 
   /* the neighbours, for context: lots and building outlines inside a pedestal around the lot */
-  var padS=13,padR=8,padF=15,ped={u0:lb[0]-padS,u1:lb[2]+padS,v0:-padF,v1:depth+padR};
-  var corners=[[ped.u0,ped.v0],[ped.u1,ped.v0],[ped.u1,ped.v1],[ped.u0,ped.v1]].map(function(p){return [org[0]+udir[0]*p[0]+vdir[0]*p[1],org[1]+udir[1]*p[0]+vdir[1]*p[1]];}),wb=bbox(corners);
+  var padS=13,padR=8,padF=15,ped={u0:lb[0]-padS,u1:lb[2]+padS,v0:Math.min(0,lb[1])-padF,v1:depth+padR};
+  /* the four corners of that patch on the real map, so an aerial photo can be laid under the model */
+  var pc=[[ped.u0,ped.v0],[ped.u1,ped.v0],[ped.u1,ped.v1],[ped.u0,ped.v1]];
+  ped.ll=pc.map(function(q){return ix.ll(world(q));});
+  var wb=bbox(pc.map(world));
   var around=[],aroundB=[];
   ix.lotsIn(wb).forEach(function(q){if(q.id===id)return;q.rings.forEach(function(r){var c=clipRect(r.map(uv),ped.u0,ped.v0,ped.u1,ped.v1);if(c.length>=3&&Math.abs(area(c))>4)around.push(c);});});
-  ix.bldIn(wb).forEach(function(b){var c=uv(b.c);if(c[0]<ped.u0+1||c[0]>ped.u1-1||c[1]<ped.v0+1||c[1]>ped.v1-1)return;if(inRing(b.c,ring))return;aroundB.push({ring:b.ring.map(uv),rect:minRect(b.ring.map(uv))});});
+  ix.bldIn(wb).forEach(function(b){var c=uv(b.c);if(c[0]<ped.u0+1||c[0]>ped.u1-1||c[1]<ped.v0+1||c[1]>ped.v1-1)return;if(mine.indexOf(b)>=0||(!spanned&&rs.some(function(r){return inRing(b.c,r);})))return;
+    var sp=spans.filter(function(x){return x.b===b;})[0];
+    if(sp){sp.rest.forEach(function(r){if(Math.abs(area(r))>4){var q=r.map(uv);aroundB.push({ring:q,rect:minRect(q)});}});return;}
+    aroundB.push({ring:b.ring.map(uv),rect:minRect(b.ring.map(uv))});});
 
-  /* ----- does each choice fit ----- */
-  function widthCheck(t){var need=t.width_ft,have=width/FT;return {k:'width',need:need,have:Math.round(have),state:have>=need+TOL_FT?'ok':have<need-TOL_FT?'short':'close'};}
+  function useV(k,t){var u=t&&('use' in t)?t.use:USEKEY[k];if(!u||!uses)return 'P';return uses[u]||null;}
   function areaCheck(t){if(!t.area_sqft)return null;return {k:'area',need:t.area_sqft,have:Math.round(sq/100)*100,acres:pr.acres,state:sq>=t.area_sqft*(1+TOL_AREA)?'ok':sq<t.area_sqft*(1-TOL_AREA)?'short':'close'};}
-  function verdict(t,checks){
+  function tidy(){sides.forEach(function(x){delete x.e;delete x.next;});}
+  var choices=[{k:'today',state:'now',n:bl.length,sqft:Math.round(covered/10)*10,cover:sq?Math.round(covered/sq*100):0}];
+  var out={ok:true,id:id,lot:lot,more:more,sides:sides,build:[],ped:ped,around:around,aroundB:aroundB,bld:bl,
+    width_ft:Math.round((lb[2]-lb[0])/FT),depth_ft:Math.round(depth/FT),sqft:Math.round(sq/100)*100,acres:pr.acres,
+    set:null,corner:corner,through:through,height_ft:H?H.ft:null,stories:H?H.stories:null,flat:!!R.flat_today,
+    outside:false,choices:choices,most:0};
+
+  if(plain){
+    /* no yard lines: the district's choices are listed, with what can be said without drawing them */
+    out.plain=true;out.why=plain.code;out.text=plain.text;
+    if(T)ORDER.forEach(function(k){var t=T[k];if(!t)return;if(k==='adu'&&!main)return;if(k==='house'&&main)return;
+      var v=useV(k,t);if(!v){choices.push({k:k,state:'no',listed:false});return;}
+      var ac=areaCheck(t),c={k:k,via:v,checks:ac?[ac]:[],state:ac&&ac.state==='short'?'no':'nd',nodraw:true};choices.push(c);});
+    (T&&R.not_here||[]).forEach(function(k){choices.push({k:k,state:'no',listed:false});});
+    tidy();return out;
+  }
+
+  /* ----- yard lines for one kind of building: where it could sit ----- */
+  var rearNear=1e9;sides.forEach(function(s){if(s.role==='rear')rearNear=Math.min(rearNear,s.a[1],s.b[1]);});
+  /* the front distance the buildings next door keep, measured on our outlines (for districts that set the front yard by the block) */
+  var nextFront=null;
+  function blockFront(){
+    if(nextFront)return nextFront;var got=[];
+    sides.forEach(function(s){if(s.role!=='side'||s.kind!=='lot'||!s.next)return;var q=s.next,r=q.rings[0].map(uv),lv=1e9;r.forEach(function(p){if(p[1]<lv)lv=p[1];});if(Math.abs(lv)>4)return;
+      var bs=ix.bldIn(q.bb).filter(function(b){return inRing(b.c,q.rings[0]);}).sort(function(x,y){return Math.abs(area(y.ring))-Math.abs(area(x.ring));});if(!bs.length)return;
+      var bv=1e9;bs[0].ring.forEach(function(p){var v=uv(p)[1];if(v<bv)bv=v;});got.push(Math.max(0,bv-lv));});
+    nextFront={n:got.length,m:got.length?got.reduce(function(s,x){return s+x;},0)/got.length:null};return nextFront;
+  }
+  var frames={};
+  function frameOf(t){
+    var fb=R.front_block&&t.front_ft==null?R.front_block:null,key=JSON.stringify([t.front_ft,t.side_ft,t.rear_ft,t.rear,t.alley_ft,t.alley_side_ft,t.corner_side_ft,t.side_res_ft,t.rear_res_ft,!!fb]);
+    if(frames[key])return frames[key];
+    var F={est:false,front_unknown:false},ffront;
+    if(fb){var nf=blockFront();
+      if(nf.m!=null){ffront=nf.m;F.est=true;F.est_n=nf.n;}
+      else if(main){var mv=1e9;main.ring.forEach(function(p){if(p[1]<mv)mv=p[1];});ffront=Math.max(0,mv);F.est=true;F.est_own=true;}
+      else if(fb.min_ft!=null){ffront=fb.min_ft*FT;F.fallback=true;}
+      else{ffront=0;F.front_unknown=true;}
+      if(fb.min_ft!=null&&nf.m==null&&!main){F.front_max_ft=fb.max_ft;}
+    }else ffront=(t.front_ft||0)*FT;
+    var rr=t.rear||(t.rear_ft==null?R.rear:null),rear=0;
+    if(hasRear)rear=rr?Math.max(rr.min_ft*FT,rr.pct_depth/100*(rearNear-ffront)):(t.rear_ft||0)*FT;
+    var build=lot.slice(),sets=[],sideMax=0,usedRes=false,usedAlley=false,usedCorner=false;
+    sides.forEach(function(s){var set;
+      if(s.role==='front')set=ffront;
+      else if(s.role==='rear'){set=rear;if(s.kind==='alley'&&t.alley_ft!=null){set=t.alley_ft*FT;usedAlley=true;}else if(s.res&&t.rear_res_ft!=null){set=t.rear_res_ft*FT;usedRes=true;}}
+      else{set=(t.side_ft||0)*FT;
+        if(s.kind==='alley'&&(t.alley_side_ft!=null||t.alley_ft!=null)){set=(t.alley_side_ft!=null?t.alley_side_ft:t.alley_ft)*FT;usedAlley=true;}
+        else if(s.res&&t.side_res_ft!=null){set=t.side_res_ft*FT;usedRes=true;}
+        else if(corner&&t.corner_side_ft!=null&&s.kind==='lot'){set=t.corner_side_ft*FT;usedCorner=true;}
+        if(set>sideMax)sideMax=set;}
+      sets.push(Math.round(set/FT));if(build.length<3||set<=0)return;var e=sub(s.b,s.a),l=len(e),nn=[e[1]/l,-e[0]/l];build=clip(build,nn,dot(s.a,nn)-set);});
+    F.build=build.length>=3?build:[];F.area=F.build.length?Math.abs(area(F.build)):0;F.bb=F.area?bbox(F.build):null;F.sets=sets;
+    /* lot width: between the side lines at the back edge of the front yard, held for 30 ft (H.2.1(c)) */
+    var w1=span(lot,Math.max(0.3,ffront)),w2=span(lot,Math.min(depth-0.5,Math.max(0.3,ffront)+30*FT));
+    F.width=Math.min(w1?w1[1]-w1[0]:0,w2?w2[1]-w2[0]:1e9);
+    F.set={front_ft:Math.round(ffront/FT),side_ft:t.side_ft||0,rear_ft:hasRear?Math.round(rear/FT):null,est:F.est,est_own:!!F.est_own,est_n:F.est_n||0,fallback:!!F.fallback,front_max_ft:F.front_max_ft||null,
+      res:usedRes,alley:usedAlley,corner_side_ft:usedCorner?t.corner_side_ft:null,side_res_ft:usedRes?t.side_res_ft:null,rear_res_ft:usedRes?t.rear_res_ft:null,alley_ft:usedAlley?(t.alley_ft!=null?t.alley_ft:t.alley_side_ft):null};
+    return frames[key]=F;
+  }
+  function widthCheck(t,F){if(!t.width_ft)return null;var need=t.width_ft,have=F.width/FT;return {k:'width',need:need,have:Math.round(have),state:have>=need+TOL_FT?'ok':have<need-TOL_FT?'short':'close'};}
+  function verdict(checks,F){
     if(checks.some(function(c){return c&&c.k==='area'&&c.state==='short';}))return 'no';
+    if(F.front_unknown)return 'nd';
     if(checks.some(function(c){return c&&c.state!=='ok';}))return 'nd';
     return 'may';
   }
   /* the biggest block up to maxW x maxD, set at the front of the buildable area, no larger than maxA */
-  function block(maxW,maxD,maxA){
-    if(!bArea)return null;
+  function block(F,maxW,maxD,maxA){
+    if(!F.area)return null;var bb=F.bb,build=F.build;
     for(var v0=bb[1]+0.05;v0<bb[3]-4;v0+=0.5){
       for(var d=Math.min(maxD,bb[3]-v0-0.05);d>=6;d-=0.5){var s1=span(build,v0),s2=span(build,v0+d);if(!s1||!s2)continue;var lo=Math.max(s1[0],s2[0]),hi=Math.min(s1[1],s2[1]),w=Math.min(maxW,hi-lo-0.1);
         if(w<4.5)continue;if(w*d>maxA){d=Math.max(6,Math.min(d,maxA/w));if(w*d>maxA)w=maxA/d;}
@@ -163,34 +258,59 @@ function analyse(ix,id,R){
     }
     return null;
   }
-  function withBlock(c,q,t){c.ex=q;if(q){c.sqft=Math.round((q.u1-q.u0)*(q.v1-q.v0)/SQFT/10)*10;c.cover=Math.round(c.sqft*SQFT/(sq*SQFT)*100);}else if(c.state==='may'){c.state='nd';c.tight=true;}c.cover_max=t.cover_pct;return c;}
-
-  var choices=[],useOf=R.uses||{};
-  choices.push({k:'today',state:'now',n:bl.length,sqft:Math.round(covered/10)*10,cover:Math.round(covered/sq*100)});
-  if(T.adu&&main){
-    var t=T.adu,ck=[widthCheck(house)],c={k:'adu',homes:2,keep:true,checks:ck,state:verdict(t,ck),park:t.parking};
-    var cap=Math.min(t.max_sqft,t.max_share_pct/100*2*main.sqft),S=Math.max(200,Math.round(cap/20)*20)*SQFT,spot=null,frontV=bbox(main.ring)[1];
-    c.sqft=Math.round(S/SQFT);c.cap=t.max_sqft;c.share=t.max_share_pct;
-    if(bArea){var shapes=[[Math.sqrt(S*1.3),Math.sqrt(S/1.3)],[Math.sqrt(S/1.3),Math.sqrt(S*1.3)]];
-      for(var v1=bb[3]-0.05;v1>bb[1]&&!spot;v1-=0.5){shapes.forEach(function(sh){if(spot)return;var w=sh[0],d=sh[1],v0=v1-d;if(v0<frontV-0.01)return;var s1=span(build,v0),s2=span(build,v1);if(!s1||!s2)return;var lo=Math.max(s1[0],s2[0])+0.05,hi=Math.min(s1[1],s2[1])-0.05;if(hi-lo<w)return;
-        [hi-w,lo,(lo+hi-w)/2].forEach(function(u0){if(spot)return;var q={u0:u0,u1:u0+w,v0:v0,v1:v1};if(!rectIn(q,build))return;if(rectGap(q,main.ring)<t.sep_ft*FT)return;for(var k=1;k<bl.length;k++)if(rectGap(q,bl[k].ring)<0.6)return;spot=q;});});}}
-    c.ex=spot;c.cover=Math.round((covered+c.sqft)/sq*100);c.cover_max=house.cover_pct;
-    if(!spot&&c.state==='may'){c.state='nd';c.tight=true;}
-    if(c.cover>c.cover_max&&c.state==='may'){c.state='nd';c.full=true;}
-    choices.push(c);
+  function start(k,t,F,homes){
+    var ck=[areaCheck(t),widthCheck(t,F)].filter(function(x){return x;});
+    return {k:k,via:useV(k,t),homes:homes,checks:ck,state:verdict(ck,F),park:t.parking,build:F.build,set:F.set,sets:F.sets,nofront:F.front_unknown,
+      stories:H?Math.min(2,H.stories):2,height_ft:H?H.ft:null,cover_max:t.cover_pct||null};
   }
-  if(T.house&&!main){var ch=[widthCheck(T.house)];choices.push(withBlock({k:'house',homes:1,checks:ch,state:verdict(T.house,ch),park:T.house.parking},block(11,12,Math.min(120,T.house.cover_pct/100*sq*SQFT*0.8)),T.house));}
-  if(T.duplex){var cd=[widthCheck(T.duplex)];choices.push(withBlock({k:'duplex',homes:2,checks:cd,state:verdict(T.duplex,cd),park:T.duplex.parking},block(14.6,R.max_depth_ft*FT,Math.min(160,T.duplex.cover_pct/100*sq*SQFT*0.8)),T.duplex));}
-  if(T.fourplex){var cf=[areaCheck(T.fourplex),widthCheck(T.fourplex)];choices.push(withBlock({k:'fourplex',homes:4,checks:cf,state:verdict(T.fourplex,cf),park:T.fourplex.parking},block(18.3,R.max_depth_ft*FT,Math.min(250,T.fourplex.cover_pct/100*sq*SQFT*0.8)),T.fourplex));}
-  (R.not_here||[]).forEach(function(k){var q=block(17,27,1e9);choices.push({k:k,state:'no',listed:false,ex:q});});
+  function withBlock(c,q){c.ex=q;if(q){c.sqft=Math.round((q.u1-q.u0)*(q.v1-q.v0)/SQFT/10)*10;c.cover=Math.round(c.sqft/sq*100);}else if(c.state==='may'){c.state='nd';c.tight=true;}return c;}
+  var lotA=sq*SQFT,maxD=(R.max_depth_ft||1e6)*FT,house=T.house||T.duplex||null,first=null;
+  function coverA(t,k){return t.cover_pct?t.cover_pct/100*lotA*k:1e9;}
 
-  var most=0;choices.forEach(function(c){if(c.state==='may'&&c.homes>most)most=c.homes;});
-  return {ok:true,id:id,lot:lot,sides:sides,build:build,ped:ped,around:around,aroundB:aroundB,bld:bl,
-    width_ft:Math.round(width/FT),depth_ft:Math.round(depth/FT),sqft:Math.round(sq/100)*100,acres:pr.acres,
-    set:{front_ft:house.front_ft,side_ft:house.side_ft,rear_ft:hasRear?Math.round(rear/FT):null},
-    corner:corner,through:through,height_ft:R.height.ft,stories:R.height.stories,
-    outside:!!(main&&bArea&&main.ring.some(function(p){return !inRing(p,build)&&ringDist(p,build)>1.5;})),
-    choices:choices,most:most};
+  ORDER.forEach(function(k){
+    var t=T[k];if(!t)return;
+    if(k==='adu'&&(!main||!house))return;
+    if(k==='house'&&main)return;
+    var v=useV(k,t);if(!v){choices.push({k:k,state:'no',listed:false});return;}
+    var F=frameOf(k==='adu'?house:t),c;if(!first)first=F;
+    if(k==='adu'){
+      c=start(k,house,F,2);c.keep=true;c.park=t.parking;c.stories=1;
+      var cap=Math.min(t.max_sqft,t.max_share_pct/100*2*main.sqft),S=Math.max(200,Math.round(cap/20)*20)*SQFT,spot=null,frontV=bbox(main.ring)[1],bb=F.bb;
+      c.sqft=Math.round(S/SQFT);c.cap=t.max_sqft;c.share=t.max_share_pct;c.sep_ft=t.sep_ft;
+      if(F.area){var shapes=[[Math.sqrt(S*1.3),Math.sqrt(S/1.3)],[Math.sqrt(S/1.3),Math.sqrt(S*1.3)]];
+        for(var v1=bb[3]-0.05;v1>bb[1]&&!spot;v1-=0.5){shapes.forEach(function(sh){if(spot)return;var w=sh[0],d=sh[1],v0=v1-d;if(v0<frontV-0.01)return;var s1=span(F.build,v0),s2=span(F.build,v1);if(!s1||!s2)return;var lo=Math.max(s1[0],s2[0])+0.05,hi=Math.min(s1[1],s2[1])-0.05;if(hi-lo<w)return;
+          [hi-w,lo,(lo+hi-w)/2].forEach(function(u0){if(spot)return;var q={u0:u0,u1:u0+w,v0:v0,v1:v1};if(!rectIn(q,F.build))return;if(rectGap(q,main.ring)<t.sep_ft*FT)return;for(var j=1;j<bl.length;j++)if(rectGap(q,bl[j].ring)<0.6)return;spot=q;});});}}
+      c.ex=spot;c.cover=Math.round((covered+c.sqft)/sq*100);c.cover_max=house.cover_pct;
+      if(!spot&&c.state==='may'){c.state='nd';c.tight=true;}
+      if(c.cover>c.cover_max&&c.state==='may'){c.state='nd';c.full=true;}
+    }else if(k==='house')c=withBlock(start(k,t,F,1),block(F,11,12,Math.min(120,coverA(t,0.8))));
+    else if(k==='duplex')c=withBlock(start(k,t,F,2),block(F,14.6,Math.min(maxD,15.3),Math.min(160,coverA(t,0.8))));
+    else if(k==='fourplex')c=withBlock(start(k,t,F,4),block(F,18.3,Math.min(maxD,15.3),Math.min(250,coverA(t,0.8))));
+    else if(k==='townhomes'){
+      /* a row of homes side by side: three or more, each two stories (the draft's definition), drawn 20 ft wide */
+      c=start(k,t,F,0);var q=block(F,8*UNIT,Math.min(maxD,12.2),coverA(t,0.9)),nh=q?Math.floor((q.u1-q.u0+0.05)/UNIT):0;
+      if(q&&nh>=3){var mid=(q.u0+q.u1)/2,w=Math.min(q.u1-q.u0,nh*UNIT*1.15);q.u0=mid-w/2;q.u1=mid+w/2;withBlock(c,q);c.homes=nh;c.example=true;}
+      else{c.ex=null;c.homes=0;if(c.state==='may'){c.state='nd';c.tight=true;}}
+    }else{
+      /* apartments, or one mixed building: as large as the yards and the lot cover limit allow, to the height limit */
+      c=start(k,t,F,0);c.open=true;c.stories=H?H.stories:2;c.ground=t.ground||null;
+      var capA=Math.min(coverA(t,0.9),t.max_sqft?t.max_sqft*SQFT:1e9);
+      if(capA<1e9||maxD<1e5)withBlock(c,block(F,1e9,maxD,capA));
+      else if(F.area>25){c.poly=F.build;c.ex=null;c.sqft=Math.round(F.area/SQFT/10)*10;c.cover=Math.round(c.sqft/sq*100);}
+      else if(c.state==='may'){c.state='nd';c.tight=true;}
+    }
+    choices.push(c);
+    /* the same building with the extra stories the draft lets an owner earn */
+    if(R.bonus&&R.bonus.of===k&&c.state==='may'&&(c.ex||c.poly)){var b2={};for(var p in c)b2[p]=c[p];b2.k='bonus';b2.bonus=true;b2.base_stories=c.stories;b2.base_ft=c.height_ft;b2.stories=R.bonus.stories;b2.height_ft=R.bonus.ft;choices.push(b2);}
+  });
+  (R.not_here||[]).forEach(function(k){var q=first?block(first,17,27,1e9):null;choices.push({k:k,state:'no',listed:false,ex:q,build:first?first.build:[]});});
+
+  var most=0;choices.forEach(function(c){if(c.state==='may'&&!c.open&&!c.example&&c.homes>most)most=c.homes;});
+  out.most=most;
+  if(first){out.build=first.build;out.set=first.set;out.width_ft=Math.round(first.width/FT);out.outside=!!(main&&first.area&&main.ring.some(function(p){return !inRing(p,first.build)&&ringDist(p,first.build)>1.5;}));}
+  out.stepback=R.stepback||null;
+  tidy();
+  return out;
 }
 return {FT:FT,index:makeIndex,analyse:analyse,_:{simplify:simplify,isConvex:isConvex,span:span,minRect:minRect,area:area,clip:clip}};
 });

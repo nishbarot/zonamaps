@@ -2,8 +2,8 @@
    This file and three.js are loaded only when someone opens a lot that has a model.
 
    What is real: the lot's shape, the neighbouring lots, building outlines, and the dashed teal frame
-   (the draft's yard distances and height limit). What is an example: the orange buildings, and how
-   tall today's buildings are drawn, because building heights are not on file. */
+   (the draft's yard distances and height limit for the choice on screen). What is an example: the
+   orange buildings, and how tall today's buildings are drawn, because building heights are not on file. */
 (function(){
 'use strict';
 var T=window.THREE,FT=0.3048;
@@ -27,7 +27,7 @@ function mount(o){
   function boxEdges(m,c){var l=new T.LineSegments(new T.EdgesGeometry(m.geometry),new T.LineDashedMaterial({color:c,dashSize:0.9,gapSize:0.6}));l.computeLineDistances();l.position.copy(m.position);return l;}
 
   /* ---------- model state ---------- */
-  var M=null,uc=0,vc=0,root=new T.Group(),gBase,gToday,gNew,gFrame,choice=null,peek=false,view='corner';
+  var M=null,uc=0,vc=0,root=new T.Group(),gBase,gToday,gNew,gFrame,gPhoto=null,gNear=null,choice=null,peek=false,view='corner';
   scene.add(root);
   var anchors=[],tagList=[],dims=[],tweens=[],raf=0,dirty=true,alive=true;
   /* f: how far to close in from the whole pedestal (0) to just the lot (1) */
@@ -57,9 +57,10 @@ function mount(o){
     var g=new T.Group(),wallH=h.stories*STORY,sh,an=[];
     if(h.ridge==='x'){sh=shell(h.d,h.w,wallH,h.roofH,h.wall,h.roof);sh.rotation.y=Math.PI/2;}else sh=shell(h.w,h.d,wallH,h.roofH,h.wall,h.roof);
     g.add(sh);var zf=h.d/2,xr=h.w/2;
-    (h.doors||[]).forEach(function(x){g.add(at(box(1.9,0.22,1.2,C.pave),x,0.11,zf+0.6),at(box(1.05,2.1,0.14,h.doorC),x,1.27,zf+0.05),at(box(1.3,0.14,0.5,h.doorC),x,2.5,zf+0.25));if(h.people)g.add(person(x+1.0,zf+0.8));an.push(new T.Vector3(x,3.4,zf+0.3));});
+    (h.doors||[]).forEach(function(x){g.add(at(box(1.9,0.22,1.2,C.pave),x,0.11,zf+0.6),at(box(1.05,2.1,0.14,h.doorC),x,1.27,zf+0.05),at(box(1.3,0.14,0.5,h.doorC),x,2.5,zf+0.25));if(h.people&&an.length<4)g.add(person(x+1.0,zf+0.8));an.push(new T.Vector3(x,3.4,zf+0.3));});
     (h.sideDoors||[]).forEach(function(z){g.add(at(box(1.2,0.22,1.9,C.pave),xr+0.6,0.11,z),at(box(0.14,2.1,1.05,h.doorC),xr+0.05,1.27,z),at(box(0.5,0.14,1.3,h.doorC),xr+0.25,2.5,z));if(h.people)g.add(person(xr+0.8,z+1.0));an.push(new T.Vector3(xr+0.3,3.4,z));});
-    var nx=Math.max(1,Math.min(5,Math.floor(h.w/3.2))),nz=Math.max(1,Math.min(4,Math.floor(h.d/4)));
+    (h.walls||[]).forEach(function(x){g.add(at(box(0.16,wallH,0.16,C.trim),x,wallH/2,zf+0.03));});
+    var nx=Math.max(1,Math.min(16,Math.floor(h.w/3.2))),nz=Math.max(1,Math.min(4,Math.floor(h.d/4)));
     for(var s=0;s<Math.floor(h.stories+0.01);s++){var y=1.75+s*STORY;
       for(var i=0;i<nx;i++){var x=-h.w/2+h.w/nx*(i+0.5);if(!(s===0&&(h.doors||[]).some(function(dx){return Math.abs(dx-x)<1.25;})))win(g,x,y,zf+0.02);win(g,x,y,-zf-0.02);}
       for(var j=0;j<nz;j++){var z=-h.d/2+h.d/nz*(j+0.5);win(g,-xr-0.02,y,z,true);if(!(s===0&&(h.sideDoors||[]).some(function(dz){return Math.abs(dz-z)<1.25;})))win(g,xr+0.02,y,z,true);}}
@@ -68,51 +69,108 @@ function mount(o){
   /* a building drawn from a real outline. Near-rectangles get a pitched roof; anything else is a plain block of the same shape. */
   function fromOutline(b,o2){
     var r=b.rect,g;
-    if(r&&r.fill>=0.78&&Math.min(r.w,r.d)>=4.5&&Math.max(r.w,r.d)<=22){
+    if(!o2.flat&&r&&r.fill>=0.78&&Math.min(r.w,r.d)>=4.5&&Math.max(r.w,r.d)<=22){
       var ang=r.ang,w=r.w,d=r.d,k=Math.round(ang/(Math.PI/2));ang-=k*Math.PI/2;if(Math.abs(k)%2===1){var t=w;w=d;d=t;}
       g=house({w:w,d:d,stories:o2.stories,roofH:o2.roofH,ridge:d>=w?'z':'x',wall:C.wall,roof:C.roof,doors:o2.door?[Math.max(-w/2+1,Math.min(w/2-1,-w/5))]:[],doorC:o2.doorC||C.door,people:false});
       g.position.set(X(r.c[0]),0,Z(r.c[1]));g.rotation.y=ang;
       if(o2.door){g.updateMatrix();g.userData.anchor=g.userData.anchors[0].clone().applyMatrix4(g.matrix);}
-    }else{g=new T.Group();var h=o2.stories*STORY+0.6;g.add(slab(b.ring,h,C.wall));var cap=slab(b.ring,0.25,C.roof);cap.position.y=h;g.add(cap);
+    }else{g=new T.Group();var h=o2.stories*STORY+0.6;if(Math.abs(ringArea(b.ring))<1)return g;g.add(slab(b.ring,h,C.wall));var cap=slab(b.ring,0.25,C.roof);cap.position.y=h;g.add(cap);
       if(o2.door){var best=null;b.ring.forEach(function(p){if(!best||p[1]<best[1])best=p;});g.userData.anchor=new T.Vector3(X(best[0]),3.4,Z(best[1])+0.3);}}
     return g;
   }
   function ghost(q,h,c){var w=q.u1-q.u0,d=q.v1-q.v0,g=new T.Group(),m=box(w,h,d,c,{transparent:true,opacity:0.2,depthWrite:false});m.position.y=h/2;g.add(m,boxEdges(m,c));g.position.set(X((q.u0+q.u1)/2),0,Z((q.v0+q.v1)/2));return g;}
+  function ringArea(r){var a=0;for(var i=0;i<r.length;i++){var p=r[i],q=r[(i+1)%r.length];a+=p[0]*q[1]-q[0]*p[1];}return a/2;}
+  function rectRing(q){return [[q.u0,q.v0],[q.u1,q.v0],[q.u1,q.v1],[q.u0,q.v1]];}
+  /* keep the part of a ring at or behind depth v0 (an upper floor stepping back from the street) */
+  function cutFront(r,v0){var o2=[];for(var i=0;i<r.length;i++){var a=r[i],b=r[(i+1)%r.length],da=v0-a[1],db=v0-b[1];if(da<=0)o2.push(a);if((da<0&&db>0)||(da>0&&db<0)){var t=da/(da-db);o2.push([a[0]+(b[0]-a[0])*t,v0]);}}return o2;}
+  function ringLine(r,y,c){return dashed(r.map(function(q){return new T.Vector3(X(q[0]),y,Z(q[1]));}),c,true);}
+  /* One larger building, a floor at a time: an orange line marks each story. Stories that have to be earned
+     are drawn see-through with a dashed edge. The front steps back higher up where the draft says so. */
+  function stack(c){
+    var g=new T.Group(),ring=c.poly||rectRing(c.ex),n=c.stories,nb=c.bonus?c.base_stories:n,v0=1e9,cx=0,cv=0,y=0,top=null;
+    ring.forEach(function(q){if(q[1]<v0)v0=q[1];cx+=q[0];cv+=q[1];});cx/=ring.length;cv/=ring.length;
+    var h0=(c.bonus?c.base_ft:c.height_ft)*FT/nb,h1=c.bonus?(c.height_ft-c.base_ft)*FT/(n-nb):h0,sb=M.stepback||[];
+    for(var i=0;i<n;i++){
+      var back=0;sb.forEach(function(s2){if(i>=s2[0])back=s2[1]*FT;});
+      var r=back?cutFront(ring,v0+back):ring,fh=i<nb?h0:h1,extra=i>=nb;if(r.length<3||Math.abs(ringArea(r))<12)break;
+      if(extra){var f=slab(r,fh,C.orange,{transparent:true,opacity:0.3,depthWrite:false});f.position.y=y;g.add(f,ringLine(r,y+fh,C.orangeDk));}
+      else{var f2=slab(r,fh-0.3,i===0&&c.ground==='shops'?C.glass:C.newWall);f2.position.y=y;var ln=slab(r,0.3,C.orange);ln.position.y=y+fh-0.3;g.add(f2,ln);}
+      y+=fh;top=r;
+    }
+    g.userData.top=y;g.userData.at=new T.Vector3(X(cx),y+0.6,Z(cv));g.userData.base=new T.Vector3(X(cx),nb*h0+0.6,Z(v0));
+    if(!c.poly){var d=box(1.6,2.3,0.16,C.orangeDk);d.position.set(X(cx),1.15,Z(v0)+0.06);g.add(d);}
+    return g;
+  }
+  /* yard lines and the height limit for the choice on screen, as a dashed teal frame */
+  function drawFrame(c){
+    clear(gFrame);gFrame.userData.tops=null;dims=[];
+    var b=c&&c.build,hf=c&&(c.height_ft||M.height_ft);if(!b||b.length<3||!hf)return;
+    var H=hf*FT,g0=b.map(function(q){return new T.Vector3(X(q[0]),0.14,Z(q[1]));}),g1=b.map(function(q){return new T.Vector3(X(q[0]),H,Z(q[1]));});
+    gFrame.add(dashed(g0,C.teal,true),dashed(g1,C.teal,true));g0.forEach(function(a,i){gFrame.add(dashed([a,g1[i]],C.teal,false));});
+    var g=new T.ShapeGeometry(shapeOf(b));g.rotateX(-Math.PI/2);var top=new T.Mesh(g,mat(C.teal,{transparent:true,opacity:0.07,depthWrite:false,side:T.DoubleSide}));top.position.y=H;gFrame.add(top);
+    gFrame.userData.tops=g1;
+    M.sides.forEach(function(sd,i){var ft=c.sets?c.sets[i]:0;if(!ft||sd.len<6)return;var ex=sd.b[0]-sd.a[0],ev=sd.b[1]-sd.a[1],l=Math.sqrt(ex*ex+ev*ev),k=ft*FT/2;dims.push({p:new T.Vector3(X((sd.a[0]+sd.b[0])/2-ev/l*k),0.2,Z((sd.a[1]+sd.b[1])/2+ex/l*k)),t:ft+' ft'});});
+  }
 
   /* ---------- the fixed parts of a lot ---------- */
   function setModel(m){
     M=m;choice=null;clear(root);gBase=new T.Group();gToday=new T.Group();gNew=new T.Group();gFrame=new T.Group();root.add(gBase,gToday,gNew,gFrame);
     var p=m.ped,pw=p.u1-p.u0,pd=p.v1-p.v0;uc=(p.u0+p.u1)/2;vc=(p.v0+p.v1)/2;
-    var l0=1e9,l1=-1e9,d0=1e9,d1=-1e9,top=Math.max(m.height_ft*FT+1.5,9);m.lot.forEach(function(q){if(q[0]<l0)l0=q[0];if(q[0]>l1)l1=q[0];if(q[1]<d0)d0=q[1];if(q[1]>d1)d1=q[1];});
+    var l0=1e9,l1=-1e9,d0=1e9,d1=-1e9,hi=m.height_ft||0;m.choices.forEach(function(c){if(c.height_ft>hi&&(c.ex||c.poly))hi=c.height_ft;});var top=Math.max(hi*FT+1.5,9);m.lot.forEach(function(q){if(q[0]<l0)l0=q[0];if(q[0]>l1)l1=q[0];if(q[1]<d0)d0=q[1];if(q[1]>d1)d1=q[1];});
     boxP=[-pw/2,pw/2,-pd/2,pd/2,top];boxL=[X(l0)-3,X(l1)+3,Z(d1)-2,Z(d0)+5,top];
     sun.position.set(34,60,42);sun.target.position.set(0,0,0);var sc=sun.shadow.camera,ext=Math.max(pw,pd)*0.85;sc.left=-ext;sc.right=ext;sc.top=ext;sc.bottom=-ext;sc.near=1;sc.far=260;sc.updateProjectionMatrix();
     var ped=box(pw+1.6,2.2,pd+1.6,C.ped);ped.position.set(0,-1.14,0);ped.castShadow=false;gBase.add(ped);
     var road=box(pw,0.06,pd,C.road);road.position.set(0,-0.03,0);road.castShadow=false;gBase.add(road);
     m.around.forEach(function(r){gBase.add(flat(r,C.lawn,0.02));var pts=r.map(function(q){return new T.Vector3(X(q[0]),0.05,Z(q[1]));});pts.push(pts[0]);gBase.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),new T.LineBasicMaterial({color:C.lawnLine})));});
-    m.aroundB.forEach(function(b){gBase.add(fromOutline(b,{stories:1.6,roofH:2.3}));});
-    gBase.add(flat(m.lot,C.mine,0.04));
-    m.lot.forEach(function(a,i){var b=m.lot[(i+1)%m.lot.length],dx=b[0]-a[0],dv=b[1]-a[1],l=Math.sqrt(dx*dx+dv*dv),ln=box(l+0.24,0.1,0.24,C.navy);ln.castShadow=false;ln.position.set(X((a[0]+b[0])/2),0.09,Z((a[1]+b[1])/2));ln.rotation.y=Math.atan2(dv,dx);gBase.add(ln);});
+    var plainNear=m.flat||m.aroundB.length>40;
+    gNear=new T.Group();gBase.add(gNear);m.aroundB.forEach(function(b){gNear.add(fromOutline(b,plainNear?{stories:2,flat:true}:{stories:1.6,roofH:2.3}));});
+    [m.lot].concat(m.more||[]).forEach(function(lr){gBase.add(flat(lr,C.mine,0.04));
+      lr.forEach(function(a,i){var b=lr[(i+1)%lr.length],dx=b[0]-a[0],dv=b[1]-a[1],l=Math.sqrt(dx*dx+dv*dv),ln=box(l+0.24,0.1,0.24,C.navy);ln.castShadow=false;ln.position.set(X((a[0]+b[0])/2),0.09,Z((a[1]+b[1])/2));ln.rotation.y=Math.atan2(dv,dx);gBase.add(ln);});});
+    ground();
     /* scale figures stand in the street, never on the lot */
     var lb=[1e9,-1e9];m.lot.forEach(function(q){if(q[0]<lb[0])lb[0]=q[0];if(q[0]>lb[1])lb[1]=q[0];});
     gBase.add(person(X(lb[1])-1.5,Z(-2.2)),car(X(lb[0])+3,Z(-6.5),Math.PI/2));
-    /* where a new building could sit and how tall: the rule, drawn as a dashed teal frame */
-    if(m.build.length>=3){var H=m.height_ft*FT,g0=m.build.map(function(q){return new T.Vector3(X(q[0]),0.14,Z(q[1]));}),g1=m.build.map(function(q){return new T.Vector3(X(q[0]),H,Z(q[1]));});
-      gFrame.add(dashed(g0,C.teal,true),dashed(g1,C.teal,true));g0.forEach(function(a,i){gFrame.add(dashed([a,g1[i]],C.teal,false));});
-      var g=new T.ShapeGeometry(shapeOf(m.build));g.rotateX(-Math.PI/2);var top=new T.Mesh(g,mat(C.teal,{transparent:true,opacity:0.07,depthWrite:false,side:T.DoubleSide}));top.position.y=H;gFrame.add(top);
-      gFrame.userData.tops=g1;}
-    dims=[];m.sides.forEach(function(sd){if(!sd.set_ft||sd.len<6)return;var ex=sd.b[0]-sd.a[0],ev=sd.b[1]-sd.a[1],l=Math.sqrt(ex*ex+ev*ev),k=sd.set_ft*FT/2;dims.push({p:new T.Vector3(X((sd.a[0]+sd.b[0])/2-ev/l*k),0.2,Z((sd.a[1]+sd.b[1])/2+ex/l*k)),t:sd.set_ft+' ft'});});
     /* what is there today, from the building outlines */
-    m.bld.forEach(function(b,i){var g=fromOutline(b,i?{stories:1,roofH:1.4}:{stories:1.6,roofH:2.5,door:true,doorC:C.navy});gToday.add(g);if(!i)gToday.userData.anchor=g.userData.anchor;});
+    m.bld.forEach(function(b,i){var g=fromOutline(b,m.flat?{stories:2,flat:true}:i?{stories:1,roofH:1.4}:{stories:1.6,roofH:2.5,door:true,doorC:C.navy});gToday.add(g);if(!i)gToday.userData.anchor=g.userData.anchor;});
     kick();
+  }
+
+  /* The real aerial photo, laid on the ground under the model. The page hands over a picture address for the patch
+     (o.photo); with none, or if the picture fails to load, the drawn lawn and street stay. */
+  function ground(){
+    if(gPhoto){gBase.remove(gPhoto);gPhoto.geometry.dispose();if(gPhoto.material.map)gPhoto.material.map.dispose();gPhoto.material.dispose();gPhoto=null;if(gNear)gNear.visible=true;kick();}
+    if(!M||!o.photo||!M.ped.ll)return;
+    var RE=6378137,mm=M.ped.ll.map(function(c){return [RE*c[0]*Math.PI/180,RE*Math.log(Math.tan(Math.PI/4+c[1]*Math.PI/360))];}),x0=1e12,y0=1e12,x1=-1e12,y1=-1e12;
+    mm.forEach(function(q){if(q[0]<x0)x0=q[0];if(q[0]>x1)x1=q[0];if(q[1]<y0)y0=q[1];if(q[1]>y1)y1=q[1];});
+    var k=1024/Math.max(x1-x0,y1-y0),url=o.photo([x0,y0,x1,y1],Math.round((x1-x0)*k),Math.round((y1-y0)*k));
+    if(!url)return;
+    var id=M.id,p=M.ped,L=new T.TextureLoader();L.setCrossOrigin('anonymous');
+    L.load(url,function(tex){
+      if(!M||M.id!==id||gPhoto||!o.photo([0,0,1,1],1,1)){tex.dispose();return;}
+      tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      var g=new T.BufferGeometry(),pos=[],uv=[];
+      [[p.u0,p.v0],[p.u1,p.v0],[p.u1,p.v1],[p.u0,p.v1]].forEach(function(q,i){pos.push(X(q[0]),0.065,Z(q[1]));uv.push((mm[i][0]-x0)/(x1-x0),(mm[i][1]-y0)/(y1-y0));});
+      g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();
+      var pm=new T.MeshLambertMaterial({map:tex,emissive:0x3A3A3A,emissiveMap:tex,transparent:true,opacity:0});   /* lifted a little: spring photos are dark under trees */
+      gPhoto=new T.Mesh(g,pm);gPhoto.receiveShadow=true;gBase.add(gPhoto);
+      /* the photo shows the neighbours' real roofs, so their drawn stand-ins step aside */
+      if(gNear)gNear.visible=false;
+      if(CALM){pm.opacity=1;pm.transparent=false;kick();}else tween(450,function(t){pm.opacity=t;if(t>=1){pm.transparent=false;pm.needsUpdate=true;}});
+    });
   }
 
   /* ---------- one choice ---------- */
   function pick(k,animate){
     if(!M)return;choice=null;M.choices.forEach(function(c){if(c.k===k)choice=c;});if(!choice)choice=M.choices[0];
-    clear(gNew);anchors=[];tagList=[];var c=choice,q=c.ex,g=null,ok=c.state==='may';
+    clear(gNew);anchors=[];tagList=[];var c=choice,q=c.ex,g=null,ok=c.state==='may',big=c.k==='apartments'||c.k==='block'||c.k==='bonus';
+    drawFrame(c.k==='today'?null:c);
     if(c.keep&&gToday.userData.anchor)anchors.push({p:gToday.userData.anchor,was:true});
-    if(q&&c.k!=='today'){var w=q.u1-q.u0,d=q.v1-q.v0,H=M.height_ft*FT,two=Math.min(2.4,H+1.1-2*STORY),lab=o.label?o.label(c):'';
-      if(!ok){g=ghost(q,c.k==='apartments'?Math.max(10.6,H+2.2):c.k==='adu'?4.6:2*STORY+1.2,C.grey);tagList.push({p:new T.Vector3(g.position.x,(c.k==='apartments'?Math.max(10.6,H+2.2):c.k==='adu'?4.6:2*STORY+1.2)+0.4,g.position.z),t:lab,c:c.state==='no'?'no':'nd'});}
+    if(!q&&c.poly&&!ok){var pb=[1e9,1e9,-1e9,-1e9];c.poly.forEach(function(p2){if(p2[0]<pb[0])pb[0]=p2[0];if(p2[0]>pb[2])pb[2]=p2[0];if(p2[1]<pb[1])pb[1]=p2[1];if(p2[1]>pb[3])pb[3]=p2[1];});q={u0:pb[0],u1:pb[2],v0:pb[1],v1:pb[3]};}
+    if(ok&&big&&(q||c.poly)){g=stack(c);if(o.label)tagList.push({p:g.userData.at,t:o.label(c),c:'ok'});if(c.bonus&&o.baseLabel)tagList.push({p:g.userData.base,t:o.baseLabel(c),c:'base'});}
+    else if(q&&c.k!=='today'){var w=q.u1-q.u0,d=q.v1-q.v0,H=(c.height_ft||M.height_ft||28)*FT,two=Math.min(2.4,H+1.1-2*STORY),lab=o.label?o.label(c):'',gh=big?Math.max(10.6,H+2.2):c.k==='adu'?4.6:2*STORY+1.2;
+      if(!ok){g=ghost(q,gh,C.grey);tagList.push({p:new T.Vector3(g.position.x,gh+0.4,g.position.z),t:lab,c:c.state==='no'?'no':'nd'});}
+      else if(c.k==='townhomes'){var nh=c.homes,ds=[],ws=[];for(var ti=0;ti<nh;ti++){ds.push(-w/2+w/nh*(ti+0.5)-Math.min(1.2,w/nh/5));if(ti)ws.push(-w/2+w/nh*ti);}
+        g=house({w:w,d:d,stories:2,roofH:two,ridge:'x',wall:C.newWall,roof:C.orange,doors:ds,walls:ws,doorC:C.orangeDk,people:true});}
       else if(c.k==='adu')g=house({w:w,d:d,stories:1,roofH:1.8,ridge:w>=d?'x':'z',wall:C.newWall,roof:C.orange,doors:[-w/5],doorC:C.orangeDk,people:true});
       else if(c.k==='house')g=house({w:w,d:d,stories:2,roofH:two,ridge:d>=w?'z':'x',wall:C.newWall,roof:C.orange,doors:[-w/5],doorC:C.orangeDk,people:true});
       else if(c.k==='duplex'){
@@ -122,7 +180,7 @@ function mount(o){
         if(w>=11)g=house({w:w,d:d,stories:2,roofH:two,ridge:'x',wall:C.newWall,roof:C.orange,doors:[-0.375*w,-0.125*w,0.125*w,0.375*w],doorC:C.orangeDk,people:true});
         else g=house({w:w,d:d,stories:2,roofH:two,ridge:'z',wall:C.newWall,roof:C.orange,doors:[-w/4,w/4],sideDoors:[d/5,-d/4],doorC:C.orangeDk,people:true});}
       if(g&&ok)g.position.set(X((q.u0+q.u1)/2),0,Z((q.v0+q.v1)/2));
-    }else if(c.k!=='today'&&!ok&&o.label){var bb=M.build.length>=3?M.build:M.lot,cx=0,cv=0;bb.forEach(function(p2){cx+=p2[0];cv+=p2[1];});tagList.push({p:new T.Vector3(X(cx/bb.length),3,Z(cv/bb.length)),t:o.label(c),c:c.state==='no'?'no':'nd'});}
+    }else if(c.k!=='today'&&!ok&&o.label){var bb=c.build&&c.build.length>=3?c.build:M.lot,cx=0,cv=0;bb.forEach(function(p2){cx+=p2[0];cv+=p2[1];});tagList.push({p:new T.Vector3(X(cx/bb.length),3,Z(cv/bb.length)),t:o.label(c),c:c.state==='no'?'no':'nd'});}
     if(g){gNew.add(g);g.updateMatrix();(g.userData.anchors||[]).forEach(function(a){anchors.push({p:a.clone().applyMatrix4(g.matrix)});});
       if(animate&&!CALM&&ok){g.scale.y=0.02;tween(420,function(t){g.scale.y=Math.max(0.02,back(t));});}}
     applyVis();renderTags(animate&&ok);kick();
@@ -136,7 +194,7 @@ function mount(o){
     function tag(cls,txt,p){var e=document.createElement('span');e.className=cls;e.textContent=txt;e._p=p;tagsEl.appendChild(e);e._hw=e.offsetWidth/2+8;return e;}
     anchors.forEach(function(a,i){var e=tag('lvbadge'+(a.was?' was':''),String(++n),a.p);e._hw=0;if(animate&&!CALM){e.style.opacity='0';setTimeout(function(){e.style.opacity='';e.classList.add('pop');},260+i*190);}});
     tagList.forEach(function(t){tag('lvtag '+t.c,t.t,t.p);});
-    if(choice.k!=='today'&&M.build.length>=3){dims.forEach(function(d){tag('lvtag dim',d.t,d.p);});if(o.limit)tag('lvtag lim',o.limit(M),gFrame.userData.tops[0])._ps=gFrame.userData.tops;}
+    if(choice.k!=='today'&&gFrame.userData.tops){dims.forEach(function(d){tag('lvtag dim',d.t,d.p);});if(o.limit)tag('lvtag lim',o.limit(M,choice),gFrame.userData.tops[0])._ps=gFrame.userData.tops;}
   }
   var v3=new T.Vector3();
   function placeTags(){var w=stage.clientWidth,h=stage.clientHeight;Array.prototype.forEach.call(tagsEl.children,function(e){
@@ -147,6 +205,10 @@ function mount(o){
     var bs=Array.prototype.filter.call(tagsEl.children,function(e){return !e._hw&&!e._ps&&e.className.indexOf('lvbadge')===0;}),D=bs.length?bs[0].offsetWidth+3:0;
     for(var it=0;it<4;it++)for(var i=0;i<bs.length;i++)for(var j=i+1;j<bs.length;j++){var a=bs[i],b=bs[j],dx=b._x-a._x,dy=b._y-a._y,l=Math.sqrt(dx*dx+dy*dy);
       if(l<D){if(l<0.01){dx=1;dy=0;l=1;}var k=(D-l)/2/l;a._x-=dx*k;a._y-=dy*k;b._x+=dx*k;b._y+=dy*k;}}
+    /* on a tall narrow building the height limit and the story labels land on one spot: stack them */
+    var ls=Array.prototype.filter.call(tagsEl.children,function(e){return /lvtag (lim|ok|base)/.test(e.className);}).sort(function(a,b){return a._y-b._y;});
+    for(var q=1;q<ls.length;q++)for(var r=0;r<q;r++){var hi=ls[r],lo=ls[q],gap=(hi.offsetHeight+lo.offsetHeight)/2+4;
+      if(Math.abs(lo._x-hi._x)<(hi.offsetWidth+lo.offsetWidth)/2&&lo._y-hi._y<gap)lo._y=hi._y+gap;}
     Array.prototype.forEach.call(tagsEl.children,function(e){e.style.transform='translate('+e._x.toFixed(1)+'px,'+e._y.toFixed(1)+'px)';});}
 
   /* ---------- camera: four fixed views and one sideways drag ---------- */
@@ -175,7 +237,7 @@ function mount(o){
   function endDrag(){if(!drag)return;var moved=drag.m>6;drag=null;if(!moved)return;var best='corner',bd=1e9;['street','corner','back'].forEach(function(v){var d=Math.abs(((VIEWS[v].th-cs.th+540)%360)-180);if(d<bd){bd=d;best=v;}});setView(best);if(o.onView)o.onView(best);}
   canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
 
-  return {setModel:setModel,pick:pick,view:setView,peek:setPeek,resize:kick,
+  return {setModel:setModel,pick:pick,view:setView,peek:setPeek,resize:kick,ground:ground,
     stop:function(){alive=false;if(raf)cancelAnimationFrame(raf);raf=0;},start:function(){alive=true;kick();},
     state:function(){return {view:view,choice:choice&&choice.k,badges:anchors.length,tags:tagList.map(function(t){return t.t;})};}};
 }

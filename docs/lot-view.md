@@ -1,6 +1,6 @@
 # The lot view: system design
 
-The lot view answers one question for one lot: **how many homes could go here, and what would that look like?** A resident opens their lot and sees it as a small 3D model. They tap "Backyard cottage", "Duplex" or "Fourplex" and the model changes, with a plain answer and the draft section beside it.
+The lot view answers one question for one lot: **how many homes could go here, and what would that look like?** A resident opens any lot in town and sees it as a small 3D model. They tap "Backyard cottage", "Duplex", "Townhomes" or "With bonus floors" and the model changes, with a plain answer and the draft section beside it.
 
 This note records how it is built, what it assumes, and what to change as zōna grows. The sample numbers come from the data in `app/data/` (see [DATA.md](../DATA.md)).
 
@@ -11,7 +11,8 @@ This note records how it is built, what it assumes, and what to change as zōna 
 ### What it does
 
 - Draws the lot a person opened, with its real shape, today's buildings and the neighbors around it.
-- Offers the housing types the draft lists for that district, each as one tap: Today, Backyard cottage, House (empty lots only), Duplex, Fourplex, Apartment building.
+- Offers the kinds of building the draft lists for that district, each as one tap: Today, Backyard cottage, House (empty lots only), Duplex, Fourplex, Townhomes, Apartment building. Downtown and in the commercial districts there is one choice for a new building, and one more for the same building with the bonus floors an owner can earn.
+- Opens for every lot. Where the shape of the lot or the text of the draft gives too little to draw, it shows the lot as it is today, lists the choices as "No drawing here" and gives the reason.
 - Gives each type one of zōna's existing answers: **Yes**, **Yes, after a hearing**, **No**, or a dashed "we can't tell" with the reason.
 - Shows the rule as a shape: a dashed teal frame for where a new building may stand and how tall it may be.
 - Counts homes as numbered front doors. There is no money, floor area ratio or unit yield anywhere.
@@ -92,11 +93,23 @@ A district gets a lot view when its draft entry in `rules.json` has a `lot` bloc
 }
 ```
 
-The sample data fills this in for Residence 2 only, read from the Borough's second draft (June 2026; its pages are headed "Public Hearing Draft"): Table C.3.3(c) and its notes, D.3.4(a) for accessory dwelling units, Table E.1.6(a) for parking, and H.2.1 and H.3 for how lots are measured.
+Beyond the house districts, the same block takes a few more keys:
+
+| Key | Meaning |
+|---|---|
+| `types.townhomes`, `types.apartments`, `types.block` | A row of homes, an apartment building, and one building of any listed use (`label`, `say` and `use` give it its name, its sentence and the row of the use table that decides Yes or No; `ground: "shops"` draws a glass ground floor) |
+| `side_res_ft`, `rear_res_ft`, `alley_ft`, `corner_side_ft` | A yard that changes next to residential land, along an alley, or on the inside line of a corner lot |
+| `front_block` | The front yard is set by the buildings next door (`tol_pct`, and `min_ft`/`max_ft` for a block with too few buildings) |
+| `bonus` | Extra stories an owner can earn: `of` (the type they sit on), `stories`, `ft`, `cite`. The list of ways to earn them comes from the district's `incentives`. |
+| `stepback` | `[[story, ft], ...]`: above that story the front wall moves back that far |
+| `kind: "street"`, `flat_today` | A district of street-wall buildings: no pitched roofs, and today's buildings are drawn as flat boxes |
+| `max_sqft`, `parking_txt`, `notes`, `info` | A cap on one building's ground area, parking in words, sentences for "How to read the model", and a district described in words only |
+
+The sample data fills this in for every district that has a table of dimensions in the Borough's second draft (June 2026; its pages are headed "Public Hearing Draft"): C.3.3(c) to C.3.6(c), C.4.3(c) and C.4.5(c) to C.4.12(c) with their notes, D.3.4(a) for accessory dwelling units, Table E.1.6(a) for parking, and H.2.1 and H.3 for how lots are measured. Institutional and Park get `info` only, because their yards depend on the district next door. The University Planned District's section says only "[Placeholder]", so it has no numbers at all.
 
 ### The lot model
 
-`analyse()` returns either `{ok:false, why, text}` or:
+`analyse()` returns `{ok:false, why, text}` only for a lot over 25 acres. Every other lot gets:
 
 ```
 { ok, id,
@@ -107,12 +120,14 @@ The sample data fills this in for Residence 2 only, read from the Borough's seco
   ped, around, aroundB    the patch of ground drawn, with neighbor lots and buildings
   width_ft, depth_ft, sqft, acres, set:{front_ft, side_ft, rear_ft}
   corner, through, outside, height_ft, stories
-  choices  [{k, state: now|may|no|nd, homes, checks, ex, sqft, cover, cover_max, park, tight, full}]
+  choices  [{k, state: now|may|no|nd, homes, checks, ex or poly, build, set, sqft, cover, cover_max, park,
+             stories, height_ft, ground, bonus, tight, full, nodraw}]
   most     the largest number of homes any "may" choice gives
+  plain, why, text    set when the lot is drawn as it is today, with the reason
 }
 ```
 
-`ex` is the example building: a rectangle placed inside `build`. `checks` holds each test with what the lot has and what the draft asks for, so the page can write the sentence without redoing any math.
+`ex` is the example building: a rectangle placed inside `build`. Where the draft has no lot cover limit and no depth limit, the example fills the yard lines instead and `poly` holds that outline. Each choice carries its own `build` and `set`, because townhomes and apartments have wider yards than a duplex on the same lot. `checks` holds each test with what the lot has and what the draft asks for, so the page can write the sentence without redoing any math.
 
 ### Finding the street with no street map
 
@@ -127,7 +142,7 @@ The data has no streets. Lots tile a block, so whatever lies past a lot line tel
 
 Street sides that point the same way are grouped into a frontage. One frontage is the front. With two or more, the shorter one is the front (a corner lot's narrow end), unless they are within 15% of each other, when the one nearest the main building wins. Clipped corners under 6 m are never the front. Corner lots give every street side the front yard distance, and through lots get a front yard at both ends, as the draft says in H.2.1(d).
 
-If no side faces a street, the lot gets no model.
+If no side faces a street, the lot gets the plain model.
 
 ### Yards, width and what fits
 
@@ -136,6 +151,14 @@ If no side faces a street, the lot gets no model.
 - **Example buildings** are plain rectangles placed at the front of `build`, sized like an ordinary building of that type (a duplex up to 48 ft wide, a fourplex up to 60 ft), no deeper than 50 ft, and kept to 80% of the lot cover limit so there is room left for a driveway.
 - **Backyard cottage.** Scanned from the back of the lot: inside `build`, 10 ft from the house, not in front of it, clear of other buildings. Its size is capped at 800 sq ft or 25% of the house's floor area. We do not know floor area, so the drawing assumes the house has two floors and says so.
 - **Lot cover** adds building footprints only. The draft also counts driveways and paving, and the card says that.
+- **Townhomes** are a row of 20 ft wide, two-story homes, three to eight of them, as many as the yard lines and lot cover allow. The draft sets no number, so the card calls the row an example.
+- **Apartment and downtown buildings** are stacked floor by floor to the height limit, one orange line per story. The draft sets no number of homes for them, so no doors are counted.
+- **Bonus floors** are the same building with the extra stories drawn see-through above a label for the height without them. The card lists each way to earn them and keeps the ones Council has asked to drop, marked as such, because they are still in the draft text.
+- **Front yards set by the block.** Three districts set the front yard by the buildings next door. The model averages the distance from the street to the neighbors' outlines on the same side and labels it "about". With no neighbor to measure, it uses where today's building stands, and says so.
+- **Build-to lines.** Downtown, Mixed Use and West End measure the front wall from the curb. The data has no curb, so the building is drawn from the front lot line and "How to read the model" gives the draft's distance.
+- **Buildings that share walls.** Downtown, one outline often covers several lots. A lot there also gets the part of any outline that stands on it, and the neighbors keep the rest.
+
+<img src="lot-view-downtown.jpg" alt="A downtown lot: seven stories with a glass ground floor, a step back above the fourth story, and two see-through bonus floors">
 
 ### Answers and precision
 
@@ -153,6 +176,7 @@ Width within 5 ft of the limit and size within 3% are too close to call. This is
 - The camera fits itself to the lot and leaves room for the floating buttons, at any screen size.
 - White is today, orange is change (the same meaning orange has everywhere in zōna), dashed teal is the rule, grey is "not here".
 - Labels are HTML placed over the canvas: door numbers, the height limit, yard distances in the Above view. Screen readers get the choice and its answer on the canvas label, and the full answer is ordinary text in the panel.
+- When the map's background is the aerial photo, the same photo is laid on the ground under the model: one picture for the patch, asked for by its four corners (`ped.ll` in the lot model). It fades in when it arrives, and the drawn neighbors step aside because the photo shows the real ones. If it never arrives, the drawn lawn and street stay.
 - Rendering is on demand. A still model costs nothing.
 - People who ask for reduced motion get instant changes and no autoplay.
 
@@ -166,6 +190,7 @@ Width within 5 ft of the limit and size within 3% are too close to call. This is
 | No WebGL, or the CDN is blocked | The flat plan stays. Every choice and answer still works. |
 | Lot with no model | Today's lot page, with one line saying why. |
 | District with no `lot` block | Today's lot page, unchanged. |
+| Aerial photo server slow or down | The drawn ground. The photo can take from under a second to 20 seconds, because the public server cuts each picture on request. |
 
 ## 4. Scale and reliability
 
@@ -174,15 +199,16 @@ Measured on the sample data with `node tools/check_lots.js`:
 | | |
 |---|---|
 | Lots | 3,125 |
-| Lots in a district with lot rules | 2,156 |
-| Lots that get a model | **1,750** (81%) |
-| No model: irregular shape | 251 |
-| No model: no street side found | 108 |
-| No model: too small or over 1 acre | 44 |
-| No model: condo units | 3 |
-| Corner lots / through lots | 311 / 12 |
+| Lots that open a model | **3,119** |
+| With yard lines and examples | **2,327** (1,750 of them in Residence 2) |
+| Plain model: irregular shape | 339 |
+| Plain model: no street side found | 155 |
+| Plain model: too small, or over the size the yard math is trusted for | 139 |
+| Plain model: the draft gives no numbers (Institutional, Park, University Planned District, no district) | 132 |
+| Plain model: condo units | 27 |
+| No model: over 25 acres | 6 |
 | Building the index | about 25 ms, once per page load |
-| One lot | well under 1 ms (all 2,156 take about 0.4 s) |
+| One lot | well under 1 ms (all 3,125 take about 0.7 s) |
 
 Each lot is worked out when it is opened, so cost does not grow with town size. A town with 50,000 lots would spend more on downloading `parcels.json` than on any of this. The index is a 60 m grid, so neighbor lookups stay constant time.
 
@@ -194,6 +220,7 @@ Each lot is worked out when it is opened, so cost does not grow with town size. 
 | The wrong side is picked as the front | The model draws a person and a car on the street side, and "How to read the model" says the front is worked out from lot lines. A correction issue fixes the data. |
 | three.js fails to load | The promise rejects and the flat plan stays |
 | `analyse()` throws on an odd shape | Caught in `lotModel()`. The lot falls back to today's page. |
+| A neighbor's outline is a poor guide to the block's front yard | The distance is labelled an estimate on the card, with the draft's rule beside it |
 
 There is no server, so there is nothing to monitor beyond the static host.
 
@@ -203,12 +230,13 @@ There is no server, so there is nothing to monitor beyond the static host.
 |---|---|---|
 | three.js, loaded on demand from cdnjs | Real depth, roofs and doors read at a glance, and it is the one library most contributors already know | About 121 KB on the first lot, and a second CDN dependency. Not yet vendored like MapLibre. |
 | Geometry in the browser, not precomputed | No pipeline to rerun when a rule changes. Change a number in `rules.json` and reload. | The same math runs on every visit (it is fast enough not to matter) |
-| Infer the street from lot lines | Needs no new dataset, so any town with parcels gets it | 108 lots get no model, and a few corner lots may have the wrong front |
-| Simple (convex) lots only | The yard math is exact and easy to check | 251 flag lots, L shapes and curves get no model yet |
+| Infer the street from lot lines | Needs no new dataset, so any town with parcels gets it | 155 lots get the plain model, and a few corner lots may have the wrong front |
+| Yard lines on simple (convex) lots only | The yard math is exact and easy to check | 339 flag lots, L shapes and curves get the plain model |
+| A plain model instead of no model | Every lot opens the same way, and the reason is in words | 792 lots show today only |
+| Draw downtown buildings from the lot line | The data has no curb | The real front wall can sit a few feet off the drawing, and the card says so |
 | Example buildings are plain rectangles | Nobody mistakes them for a design proposal | Less charming than a real house plan |
-| "Too close to call" bands | A wrong Yes is worse than an honest "check" | 143 cottage answers, 128 duplex answers and 45 fourplex answers are "can't tell" |
+| "Too close to call" bands | A wrong Yes is worse than an honest "check" | In Residence 2 alone, 143 cottage answers, 128 duplex answers and 45 fourplex answers are "can't tell" |
 | Count homes, leave out money | Homes and stories are facts in the draft. Prices are guesses. | No answer to "what is it worth" |
-| Residence 2 only | The district most households ask about, and the one whose rules changed most | Other districts keep today's page |
 | Four fixed views | Nothing to learn, nothing to get lost in | No free orbit or zoom |
 
 ## 6. Assumptions
@@ -221,10 +249,11 @@ There is no server, so there is nothing to monitor beyond the static host.
 
 ## 7. What to revisit
 
-1. **Street centerlines.** Adding them would replace the inference, give fronts to the 108 lots without one, and let the model measure block-face averages (H.3.2 and H.3.3), which today it can only mention.
-2. **Irregular lots.** Inward offsetting for non-convex shapes would cover most of the 251.
-3. **More districts.** Each needs a `lot` block and a pass through its table of dimensions. Townhome and apartment districts need new building shapes in `lot3d.js`.
+1. **Street centerlines and curbs.** Adding them would replace the inference, give fronts to the 155 lots without one, let the model measure block-face averages (H.3.2 and H.3.3) properly, and put downtown buildings on the draft's build-to line.
+2. **Irregular lots.** Inward offsetting for non-convex shapes would cover most of the 339.
+3. **The next draft.** A third draft is expected. Every `lot` block needs re-reading against it, starting with the two open questions in [DATA.md](../DATA.md): the 48 or 52 ft height in Mixed Use and West End, and townhouse parking.
 4. **Paving and open space.** With a driveway layer, lot cover and the 45% open space rule could be applied instead of described.
-5. **Vendor three.js** in `app/vendor/` once the lot view has settled, so the page works offline like the map does.
-6. **Triplex and cottage courts.** The Residence 2 table covers triplexes alongside fourplexes, and H.3.1(a) mentions cottage courts. Neither has its own choice yet.
-7. **A unit test file.** `check_lots.js` is a whole-town check. A few fixed lots with expected answers would catch a wording or rule regression sooner.
+5. **Host the town's aerial photo ourselves.** The photos are free to copy. A set of tiles for one borough is roughly 70 to 100 MB, and serving it from our own static host would make the photo instant and take the load off the public server.
+6. **Vendor three.js** in `app/vendor/` once the lot view has settled, so the page works offline like the map does.
+7. **Triplex and cottage courts.** The Residence 2 table covers triplexes alongside fourplexes, and H.3.1(a) mentions cottage courts. Neither has its own choice yet.
+8. **A unit test file.** `check_lots.js` is a whole-town check. A few fixed lots with expected answers would catch a wording or rule regression sooner.
