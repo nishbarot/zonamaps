@@ -18,8 +18,9 @@ You don't need to write any code.
 2. Edit `app/simple.tpl.html`, not `app/simple.html`.
 3. Rebuild: `cd app && python3 build_simple.py`
 4. Serve and check it: `python3 -m http.server 8000`, then open `http://localhost:8000/simple.html` at both laptop and phone widths.
-5. Optional: take screenshots with Playwright: `PORT=8000 node tools/screenshots.js ./shots`
-6. Open a pull request saying what a reader sees before and after.
+5. If you changed `app/lotmath.js` or a `lot` block in `app/data/rules.json`, run `node tools/check_lots.js`. It works out every lot and fails if an example building lands outside the yard lines. `node tools/check_lots.js <parcel number>` prints one lot in full.
+6. Optional: take screenshots with Playwright: `PORT=8000 node tools/screenshots.js ./shots`
+7. Open a pull request saying what a reader sees before and after.
 
 Keep pull requests small. If you're changing the data in `app/data/`, say where the new values came from.
 

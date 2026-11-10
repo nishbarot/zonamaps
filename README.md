@@ -28,6 +28,7 @@ zōna starts from those questions, not from the ordinance's structure. It answer
 - **Starts from your life, not the code.** Residents pick "A parent is moving in with me" or "I want to open a café", and zōna turns that into the zoning question underneath it.
 - **Answers "Where can I…" with real counts.** For example, "Add a small second home: 2,632 lots", split by who says yes.
 - **Says who decides.** Every answer is one of four: *Yes* (staff issue a permit), *Yes, after a hearing* (a hearing board or the governing body), *No*, or *Not decided yet*.
+- **Shows a lot as a model.** On house lots, the lot opens as a small 3D model. Tap "Backyard cottage", "Duplex" or "Fourplex" to see what could fit inside the draft's yard lines and height limit, with homes counted as front doors. See [how the lot view works](docs/lot-view.md).
 - **Explains any lot.** Search an address or parcel number to see today's and the draft's height limits in stories, what really changes there (uses, lot sizes), what earns incentive height, a summary of the block, and what you could do there.
 - **Points to the process.** It gives the draft timeline and how to send a public comment.
 - **Works on phones.** The map comes with a bottom sheet you can drag to any height. 
@@ -36,6 +37,13 @@ zōna starts from those questions, not from the ordinance's structure. It answer
 <tr>
 <td width="62%"><img src="docs/where-can-i.jpg" alt="Where can I add a small second home: a lot count, who says yes, and the matching lots highlighted on the map"></td>
 <td width="38%"><img src="docs/phone.jpg" alt="zōna on a phone: map on top, overview in a draggable bottom sheet"></td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="68%"><img src="docs/lot-view.jpg" alt="The lot view on a laptop: a house and an orange backyard cottage inside the dashed frame a new building must stay within, with the answer beside it"></td>
+<td width="32%"><img src="docs/lot-view-phone.jpg" alt="The lot view on a phone: a fourplex with four numbered front doors on an empty lot"></td>
 </tr>
 </table>
 
@@ -52,7 +60,7 @@ python3 -m http.server 8000
 # open http://localhost:8000/simple.html
 ```
 
-The page loads [MapLibre GL JS](https://maplibre.org) 4.7.1 from cdnjs. A copy is also kept in `app/vendor/` in case you need to work offline.
+The page loads [MapLibre GL JS](https://maplibre.org) 4.7.1 from cdnjs. A copy is also kept in `app/vendor/` in case you need to work offline. The lot view loads [three.js](https://threejs.org) r128 from cdnjs the first time someone opens a lot with a model. Without it, the lot view shows a flat plan.
 
 ## How it works
 
@@ -62,6 +70,8 @@ app/
   simple.tpl.html   the explorer: layout, styles, page logic (edit this)
   build_simple.py   builds simple.html (adds the MapLibre stylesheet to the page above)
   simple.html       the built page that gets served (don't edit by hand)
+  lotmath.js        the lot view's geometry: street side, yard lines, what fits
+  lot3d.js          draws the lot view in 3D (fetched when a lot opens)
   data/
     parcels.json    lots: shape, today's and draft district, height limits
     rules.json      today's and draft rules per district (uses, heights, parking)
@@ -70,10 +80,11 @@ app/
   vercel.json       serves simple.html at /
 tools/
   screenshots.js    Playwright screenshots at laptop, tablet and phone sizes
+  check_lots.js     runs the lot math over every lot and prints what it found
   get_footprints.py cuts building footprints for your area from a statewide file
 ```
 
-- **No framework and no backend.** The page reads `town.js`, fetches four JSON files and draws them with MapLibre. Everything else, including counts, block summaries and answers, is computed in the browser.
+- **No framework and no backend.** The page reads `town.js`, fetches four JSON files and draws them with MapLibre. Everything else, including counts, block summaries, answers and the lot view's geometry, is computed in the browser.
 - **Colors are tokens.** The palette sits at the top of `simple.tpl.html`. Orange only ever means "changes".
 - **Rebuild after you edit:**
 
@@ -84,7 +95,7 @@ tools/
 ## Set it up for your town
 
 1. **Parcels.** Export your county's or town's parcels as GeoJSON polygons into `data/parcels.json`. Each feature needs an `id` (parcel number), `cur` and `draft` district codes, and the height limits `h_cur`, `h_draft` and `h_draft_max` in feet. A lot with no height on file can leave them `null`.
-2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking`, `incentives` and `changes`. `incentives` lists what earns extra stories (`max`, and `options` with `t`, `st` stories, optional `w`, `drop`), plus `pending` changes not yet in the draft text. `changes` holds the plain-language items that matter most for a district, like new uses or lot sizes, each with a citation (`c`).
+2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking`, `incentives`, `changes` and `lot`. `incentives` lists what earns extra stories (`max`, and `options` with `t`, `st` stories, optional `w`, `drop`), plus `pending` changes not yet in the draft text. `changes` holds the plain-language items that matter most for a district, like new uses or lot sizes, each with a citation (`c`). `lot` turns on the lot view for a district: yard distances, lot width and size, lot cover, height and parking for each housing type, each with its section. [docs/lot-view.md](docs/lot-view.md) shows the block, and `node tools/check_lots.js` tells you how many lots get a model.
 3. **Addresses.** Map parcel numbers to site addresses in `data/addresses.json`. Use parcel number and address only. Leave out owner names and sale data.
 4. **Footprints (optional).** Run `tools/get_footprints.py` on your state's file from [Microsoft's footprints](https://github.com/microsoft/USBuildingFootprints) and keep the ODbL credit.
 5. **Town settings.** Everything about the place itself lives in `app/town.js`: its name, who decides (staff, hearing board, council), the draft's name and date, the timeline, the comment email, source links, notes, example places, the help panel and the map credits. Rewrite it for your ordinance and cite your own sections. No rebuild is needed.
@@ -106,7 +117,8 @@ Code changes are welcome too. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to 
 
 - A draft ordinance is **not law** and can change before adoption. The page shows the draft's date.
 - District lines traced by hand from a PDF map are approximate, and zōna says so.
-- Setbacks, lot coverage, density and overlays are not applied yet.
+- The lot view applies yard distances, lot width, lot size and height in districts that have lot rules (Residence 2 in the sample data), and only on lots with a simple shape. It works out which side faces the street from the lot lines. Lot cover counts buildings only. Open space, block averages and overlays are not applied.
+- Everywhere else, setbacks, lot coverage, density and overlays are not applied yet.
 - **Nothing here is legal advice.** The local planning and zoning office decides what applies to a lot.
 
 zōna is an independent, nonpartisan project. It is not made by or for any government.
@@ -116,5 +128,6 @@ zōna is an independent, nonpartisan project. It is not made by or for any gover
 - **Code:** [MIT](LICENSE).
 - **Data:** keeps its own terms, listed source by source in [DATA.md](DATA.md). Building footprints are © Microsoft under the ODbL.
 - **Map:** [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) (BSD-3-Clause).
+- **Lot view:** [three.js](https://github.com/mrdoob/three.js) (MIT).
 
 Built by Nish Barot.

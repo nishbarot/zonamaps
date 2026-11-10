@@ -124,7 +124,8 @@ var TOWN={
       ['gap','Partial','<b>Street addresses.</b> Joined from the Borough\'s tax parcel layer, so 3,088 of 3,125 parcels have one. Parcels outside the Borough have none.'],
       ['gap','Partial','<b>Buildings.</b> Footprints come from Microsoft\'s 2019 US building dataset, so recent demolition or construction is missing.'],
       ['no','Missing','<b>Building heights.</b> Existing buildings are drawn low. Existing-versus-allowed comparisons are footprint only.'],
-      ['no','Missing','<b>Setbacks, lot coverage, density, parking limits.</b> The block shows only the height limit over the whole lot. A real building would be smaller.']
+      ['gap','Partial','<b>The lot model.</b> On Residence 2 lots with a simple shape (1,750 of 2,156), the model applies the draft\'s yard distances, lot width, lot size and height, from Table C.3.3(c), D.3.4(a) and Part H. We have no street map, so the side that faces the street is worked out from the lot lines. Lot cover counts buildings only. Open space rules and block averages are not applied. The orange building is one example, not a plan.'],
+      ['no','Missing','<b>Setbacks, lot coverage, density, parking limits on every other lot.</b> The block on the map shows only the height limit over the whole lot. A real building would be smaller.']
     ],
     sources:[
       ['https://www.statecollegepa.us/new-zoning-ordinance','Borough page for the new zoning ordinance','(draft text, use tables, incentive schedule, draft map)'],
