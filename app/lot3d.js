@@ -27,7 +27,7 @@ function mount(o){
   function boxEdges(m,c){var l=new T.LineSegments(new T.EdgesGeometry(m.geometry),new T.LineDashedMaterial({color:c,dashSize:0.9,gapSize:0.6}));l.computeLineDistances();l.position.copy(m.position);return l;}
 
   /* ---------- model state ---------- */
-  var M=null,uc=0,vc=0,root=new T.Group(),gBase,gToday,gNew,gFrame,choice=null,peek=false,view='corner';
+  var M=null,uc=0,vc=0,root=new T.Group(),gBase,gToday,gNew,gFrame,gPhoto=null,gNear=null,choice=null,peek=false,view='corner';
   scene.add(root);
   var anchors=[],tagList=[],dims=[],tweens=[],raf=0,dirty=true,alive=true;
   /* f: how far to close in from the whole pedestal (0) to just the lot (1) */
@@ -89,9 +89,10 @@ function mount(o){
     var ped=box(pw+1.6,2.2,pd+1.6,C.ped);ped.position.set(0,-1.14,0);ped.castShadow=false;gBase.add(ped);
     var road=box(pw,0.06,pd,C.road);road.position.set(0,-0.03,0);road.castShadow=false;gBase.add(road);
     m.around.forEach(function(r){gBase.add(flat(r,C.lawn,0.02));var pts=r.map(function(q){return new T.Vector3(X(q[0]),0.05,Z(q[1]));});pts.push(pts[0]);gBase.add(new T.Line(new T.BufferGeometry().setFromPoints(pts),new T.LineBasicMaterial({color:C.lawnLine})));});
-    m.aroundB.forEach(function(b){gBase.add(fromOutline(b,{stories:1.6,roofH:2.3}));});
+    gNear=new T.Group();gBase.add(gNear);m.aroundB.forEach(function(b){gNear.add(fromOutline(b,{stories:1.6,roofH:2.3}));});
     gBase.add(flat(m.lot,C.mine,0.04));
     m.lot.forEach(function(a,i){var b=m.lot[(i+1)%m.lot.length],dx=b[0]-a[0],dv=b[1]-a[1],l=Math.sqrt(dx*dx+dv*dv),ln=box(l+0.24,0.1,0.24,C.navy);ln.castShadow=false;ln.position.set(X((a[0]+b[0])/2),0.09,Z((a[1]+b[1])/2));ln.rotation.y=Math.atan2(dv,dx);gBase.add(ln);});
+    ground();
     /* scale figures stand in the street, never on the lot */
     var lb=[1e9,-1e9];m.lot.forEach(function(q){if(q[0]<lb[0])lb[0]=q[0];if(q[0]>lb[1])lb[1]=q[0];});
     gBase.add(person(X(lb[1])-1.5,Z(-2.2)),car(X(lb[0])+3,Z(-6.5),Math.PI/2));
@@ -104,6 +105,30 @@ function mount(o){
     /* what is there today, from the building outlines */
     m.bld.forEach(function(b,i){var g=fromOutline(b,i?{stories:1,roofH:1.4}:{stories:1.6,roofH:2.5,door:true,doorC:C.navy});gToday.add(g);if(!i)gToday.userData.anchor=g.userData.anchor;});
     kick();
+  }
+
+  /* The real aerial photo, laid on the ground under the model. The page hands over a picture address for the patch
+     (o.photo); with none, or if the picture fails to load, the drawn lawn and street stay. */
+  function ground(){
+    if(gPhoto){gBase.remove(gPhoto);gPhoto.geometry.dispose();if(gPhoto.material.map)gPhoto.material.map.dispose();gPhoto.material.dispose();gPhoto=null;if(gNear)gNear.visible=true;kick();}
+    if(!M||!o.photo||!M.ped.ll)return;
+    var RE=6378137,mm=M.ped.ll.map(function(c){return [RE*c[0]*Math.PI/180,RE*Math.log(Math.tan(Math.PI/4+c[1]*Math.PI/360))];}),x0=1e12,y0=1e12,x1=-1e12,y1=-1e12;
+    mm.forEach(function(q){if(q[0]<x0)x0=q[0];if(q[0]>x1)x1=q[0];if(q[1]<y0)y0=q[1];if(q[1]>y1)y1=q[1];});
+    var k=1024/Math.max(x1-x0,y1-y0),url=o.photo([x0,y0,x1,y1],Math.round((x1-x0)*k),Math.round((y1-y0)*k));
+    if(!url)return;
+    var id=M.id,p=M.ped,L=new T.TextureLoader();L.setCrossOrigin('anonymous');
+    L.load(url,function(tex){
+      if(!M||M.id!==id||gPhoto||!o.photo([0,0,1,1],1,1)){tex.dispose();return;}
+      tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+      var g=new T.BufferGeometry(),pos=[],uv=[];
+      [[p.u0,p.v0],[p.u1,p.v0],[p.u1,p.v1],[p.u0,p.v1]].forEach(function(q,i){pos.push(X(q[0]),0.065,Z(q[1]));uv.push((mm[i][0]-x0)/(x1-x0),(mm[i][1]-y0)/(y1-y0));});
+      g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex([0,1,2,0,2,3]);g.computeVertexNormals();
+      var pm=new T.MeshLambertMaterial({map:tex,emissive:0x3A3A3A,emissiveMap:tex,transparent:true,opacity:0});   /* lifted a little: spring photos are dark under trees */
+      gPhoto=new T.Mesh(g,pm);gPhoto.receiveShadow=true;gBase.add(gPhoto);
+      /* the photo shows the neighbours' real roofs, so their drawn stand-ins step aside */
+      if(gNear)gNear.visible=false;
+      if(CALM){pm.opacity=1;pm.transparent=false;kick();}else tween(450,function(t){pm.opacity=t;if(t>=1){pm.transparent=false;pm.needsUpdate=true;}});
+    });
   }
 
   /* ---------- one choice ---------- */
@@ -175,7 +200,7 @@ function mount(o){
   function endDrag(){if(!drag)return;var moved=drag.m>6;drag=null;if(!moved)return;var best='corner',bd=1e9;['street','corner','back'].forEach(function(v){var d=Math.abs(((VIEWS[v].th-cs.th+540)%360)-180);if(d<bd){bd=d;best=v;}});setView(best);if(o.onView)o.onView(best);}
   canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);
 
-  return {setModel:setModel,pick:pick,view:setView,peek:setPeek,resize:kick,
+  return {setModel:setModel,pick:pick,view:setView,peek:setPeek,resize:kick,ground:ground,
     stop:function(){alive=false;if(raf)cancelAnimationFrame(raf);raf=0;},start:function(){alive=true;kick();},
     state:function(){return {view:view,choice:choice&&choice.k,badges:anchors.length,tags:tagList.map(function(t){return t.t;})};}};
 }

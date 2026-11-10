@@ -153,6 +153,7 @@ Width within 5 ft of the limit and size within 3% are too close to call. This is
 - The camera fits itself to the lot and leaves room for the floating buttons, at any screen size.
 - White is today, orange is change (the same meaning orange has everywhere in zōna), dashed teal is the rule, grey is "not here".
 - Labels are HTML placed over the canvas: door numbers, the height limit, yard distances in the Above view. Screen readers get the choice and its answer on the canvas label, and the full answer is ordinary text in the panel.
+- When the map's background is the aerial photo, the same photo is laid on the ground under the model: one picture for the patch, asked for by its four corners (`ped.ll` in the lot model). It fades in when it arrives, and the drawn neighbors step aside because the photo shows the real ones. If it never arrives, the drawn lawn and street stay.
 - Rendering is on demand. A still model costs nothing.
 - People who ask for reduced motion get instant changes and no autoplay.
 
@@ -166,6 +167,7 @@ Width within 5 ft of the limit and size within 3% are too close to call. This is
 | No WebGL, or the CDN is blocked | The flat plan stays. Every choice and answer still works. |
 | Lot with no model | Today's lot page, with one line saying why. |
 | District with no `lot` block | Today's lot page, unchanged. |
+| Aerial photo server slow or down | The drawn ground. The photo can take from under a second to 20 seconds, because the public server cuts each picture on request. |
 
 ## 4. Scale and reliability
 
@@ -225,6 +227,7 @@ There is no server, so there is nothing to monitor beyond the static host.
 2. **Irregular lots.** Inward offsetting for non-convex shapes would cover most of the 251.
 3. **More districts.** Each needs a `lot` block and a pass through its table of dimensions. Townhome and apartment districts need new building shapes in `lot3d.js`.
 4. **Paving and open space.** With a driveway layer, lot cover and the 45% open space rule could be applied instead of described.
-5. **Vendor three.js** in `app/vendor/` once the lot view has settled, so the page works offline like the map does.
-6. **Triplex and cottage courts.** The Residence 2 table covers triplexes alongside fourplexes, and H.3.1(a) mentions cottage courts. Neither has its own choice yet.
-7. **A unit test file.** `check_lots.js` is a whole-town check. A few fixed lots with expected answers would catch a wording or rule regression sooner.
+5. **Host the town's aerial photo ourselves.** The photos are free to copy. A set of tiles for one borough is roughly 70 to 100 MB, and serving it from our own static host would make the photo instant and take the load off the public server.
+6. **Vendor three.js** in `app/vendor/` once the lot view has settled, so the page works offline like the map does.
+7. **Triplex and cottage courts.** The Residence 2 table covers triplexes alongside fourplexes, and H.3.1(a) mentions cottage courts. Neither has its own choice yet.
+8. **A unit test file.** `check_lots.js` is a whole-town check. A few fixed lots with expected answers would catch a wording or rule regression sooner.

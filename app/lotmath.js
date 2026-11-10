@@ -59,6 +59,7 @@ function makeIndex(parcels,buildings){
   (buildings?buildings.features:[]).forEach(function(f){var o=outer(f.geometry);if(!o)return;var r=ring(o),c=centroid(r);B.push({ring:r,c:c});var k=Math.floor(c[0]/CELL)+','+Math.floor(c[1]/CELL);(bgrid[k]||(bgrid[k]=[])).push(B.length-1);});
   function near(g,b){var seen={},o=[];for(var x=Math.floor(b[0]/CELL);x<=Math.floor(b[2]/CELL);x++)for(var y=Math.floor(b[1]/CELL);y<=Math.floor(b[3]/CELL);y++){(g[x+','+y]||[]).forEach(function(i){if(!seen[i]){seen[i]=1;o.push(i);}});}return o;}
   return {lots:lots,
+    ll:function(p){return [lon0+p[0]/kx,lat0+p[1]/ky];},   /* metres back to longitude and latitude */
     lotAt:function(p,skip){var c=near(grid,[p[0],p[1],p[0],p[1]]);for(var i=0;i<c.length;i++){var o=L[c[i]];if(o.id===skip)continue;if(p[0]<o.bb[0]||p[0]>o.bb[2]||p[1]<o.bb[1]||p[1]>o.bb[3])continue;for(var k=0;k<o.rings.length;k++)if(inRing(p,o.rings[k]))return o;}return null;},
     lotsIn:function(b){return near(grid,b).map(function(i){return L[i];}).filter(function(o){return !(o.bb[2]<b[0]||o.bb[0]>b[2]||o.bb[3]<b[1]||o.bb[1]>b[3]);});},
     bldIn:function(b){return near(bgrid,b).map(function(i){return B[i];}).filter(function(o){return o.c[0]>=b[0]&&o.c[0]<=b[2]&&o.c[1]>=b[1]&&o.c[1]<=b[3];});}};
@@ -140,6 +141,8 @@ function analyse(ix,id,R){
 
   /* the neighbours, for context: lots and building outlines inside a pedestal around the lot */
   var padS=13,padR=8,padF=15,ped={u0:lb[0]-padS,u1:lb[2]+padS,v0:-padF,v1:depth+padR};
+  /* the four corners of that patch on the real map, so an aerial photo can be laid under the model */
+  ped.ll=[[ped.u0,ped.v0],[ped.u1,ped.v0],[ped.u1,ped.v1],[ped.u0,ped.v1]].map(function(q){return ix.ll([org[0]+q[0]*udir[0]+q[1]*vdir[0],org[1]+q[0]*udir[1]+q[1]*vdir[1]]);});
   var corners=[[ped.u0,ped.v0],[ped.u1,ped.v0],[ped.u1,ped.v1],[ped.u0,ped.v1]].map(function(p){return [org[0]+udir[0]*p[0]+vdir[0]*p[1],org[1]+udir[1]*p[0]+vdir[1]*p[1]];}),wb=bbox(corners);
   var around=[],aroundB=[];
   ix.lotsIn(wb).forEach(function(q){if(q.id===id)return;q.rings.forEach(function(r){var c=clipRect(r.map(uv),ped.u0,ped.v0,ped.u1,ped.v1);if(c.length>=3&&Math.abs(area(c))>4)around.push(c);});});

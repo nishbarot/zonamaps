@@ -28,7 +28,8 @@ zōna starts from those questions, not from the ordinance's structure. It answer
 - **Starts from your life, not the code.** Residents pick "A parent is moving in with me" or "I want to open a café", and zōna turns that into the zoning question underneath it.
 - **Answers "Where can I…" with real counts.** For example, "Add a small second home: 2,632 lots", split by who says yes.
 - **Says who decides.** Every answer is one of four: *Yes* (staff issue a permit), *Yes, after a hearing* (a hearing board or the governing body), *No*, or *Not decided yet*.
-- **Shows a lot as a model.** On house lots, the lot opens as a small 3D model. Tap "Backyard cottage", "Duplex" or "Fourplex" to see what could fit inside the draft's yard lines and height limit, with homes counted as front doors. See [how the lot view works](docs/lot-view.md).
+- **Looks like your town.** The map sits on an aerial photo with street names, so people find their own block without learning a new kind of map. A plain background with drawn streets and shaded hills is one tap away.
+- **Shows a lot as a model.** On house lots, the lot opens as a small 3D model. Tap "Backyard cottage", "Duplex" or "Fourplex" to see what could fit inside the draft's yard lines and height limit, with homes counted as front doors. The model stands on the real aerial photo of that yard. See [how the lot view works](docs/lot-view.md).
 - **Explains any lot.** Search an address or parcel number to see today's and the draft's height limits in stories, what really changes there (uses, lot sizes), what earns incentive height, a summary of the block, and what you could do there.
 - **Points to the process.** It gives the draft timeline and how to send a public comment.
 - **Works on phones.** The map comes with a bottom sheet you can drag to any height. 
@@ -61,6 +62,8 @@ python3 -m http.server 8000
 ```
 
 The page loads [MapLibre GL JS](https://maplibre.org) 4.7.1 from cdnjs. A copy is also kept in `app/vendor/` in case you need to work offline. The lot view loads [three.js](https://threejs.org) r128 from cdnjs the first time someone opens a lot with a model. Without it, the lot view shows a flat plan.
+
+The background (aerial photos, street names, hill shading) loads from public tile servers named in `app/town.js`. If they are slow or down, the map falls back to plain paper and everything else still works.
 
 ## How it works
 
@@ -98,8 +101,9 @@ tools/
 2. **Rules.** In `data/rules.json`, describe each district under `current` and `draft`: a `name`, `ft`, `stories`, and a `use` map whose values are `"P"` (permitted), `"S"` (special exception), `"C"` (conditional use) or `null` (not listed), plus optional `parking`, `incentives`, `changes` and `lot`. `incentives` lists what earns extra stories (`max`, and `options` with `t`, `st` stories, optional `w`, `drop`), plus `pending` changes not yet in the draft text. `changes` holds the plain-language items that matter most for a district, like new uses or lot sizes, each with a citation (`c`). `lot` turns on the lot view for a district: yard distances, lot width and size, lot cover, height and parking for each housing type, each with its section. [docs/lot-view.md](docs/lot-view.md) shows the block, and `node tools/check_lots.js` tells you how many lots get a model.
 3. **Addresses.** Map parcel numbers to site addresses in `data/addresses.json`. Use parcel number and address only. Leave out owner names and sale data.
 4. **Footprints (optional).** Run `tools/get_footprints.py` on your state's file from [Microsoft's footprints](https://github.com/microsoft/USBuildingFootprints) and keep the ODbL credit.
-5. **Town settings.** Everything about the place itself lives in `app/town.js`: its name, who decides (staff, hearing board, council), the draft's name and date, the timeline, the comment email, source links, notes, example places, the help panel and the map credits. Rewrite it for your ordinance and cite your own sections. No rebuild is needed.
-6. **Credit your sources** in your own `DATA.md`.
+5. **Background (optional).** The `basemap` block in `app/town.js` lists the picture under the map. `photo` is a list of aerial photo tile layers, far to near. The USGS imagery layer covers the whole United States to zoom 16, and many states publish sharper photos of their own (the sample uses Pennsylvania's). `lotPhoto` is one picture address for the ground under a lot model. `names` is a set of OpenMapTiles-style vector tiles for streets and street names, and `hills` is elevation tiles for shading. Check each source's terms, and delete the block to keep the plain map.
+6. **Town settings.** Everything about the place itself lives in `app/town.js`: its name, who decides (staff, hearing board, council), the draft's name and date, the timeline, the comment email, source links, notes, example places, the help panel and the map credits. Rewrite it for your ordinance and cite your own sections. No rebuild is needed.
+7. **Credit your sources** in your own `DATA.md`.
 
 If you set one up, open an issue and tell us about it.
 
@@ -118,6 +122,7 @@ Code changes are welcome too. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to 
 - A draft ordinance is **not law** and can change before adoption. The page shows the draft's date.
 - District lines traced by hand from a PDF map are approximate, and zōna says so.
 - The lot view applies yard distances, lot width, lot size and height in districts that have lot rules (Residence 2 in the sample data), and only on lots with a simple shape. It works out which side faces the street from the lot lines. Lot cover counts buildings only. Open space, block averages and overlays are not applied.
+- The aerial photos are a backdrop. They are a few years old, they load from public servers zōna does not run, and no answer is read from them.
 - Everywhere else, setbacks, lot coverage, density and overlays are not applied yet.
 - **Nothing here is legal advice.** The local planning and zoning office decides what applies to a lot.
 
@@ -128,6 +133,7 @@ zōna is an independent, nonpartisan project. It is not made by or for any gover
 - **Code:** [MIT](LICENSE).
 - **Data:** keeps its own terms, listed source by source in [DATA.md](DATA.md). Building footprints are © Microsoft under the ODbL.
 - **Map:** [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) (BSD-3-Clause).
+- **Background:** aerial photos from the USGS and from PEMA through PASDA, streets from [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors through [OpenFreeMap](https://openfreemap.org), terrain from the Mapzen terrain tiles. See [DATA.md](DATA.md).
 - **Lot view:** [three.js](https://github.com/mrdoob/three.js) (MIT).
 
 Built by Nish Barot.

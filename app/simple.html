@@ -211,6 +211,7 @@ body{overflow:hidden}
 .maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
 .maplibregl-ctrl-attrib{background:var(--panel)!important;color:var(--muted)!important;font-size:11px!important;border-radius:10px!important}
 .maplibregl-ctrl-attrib a{color:var(--muted)!important}
+.maplibregl-ctrl-attrib.maplibregl-compact-show{max-width:min(640px,calc(100vw - 32px))}
 
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--scrim);padding:16px}
 .sheet{width:min(820px,100%);max-height:100%;overflow:auto;background:var(--panel);border-radius:18px;box-shadow:var(--card-shadow)}
@@ -431,6 +432,13 @@ body{overflow:hidden}
     <div class="vwrap">
       <button class="icob" id="viewBtn" type="button" aria-label="View" aria-expanded="false" aria-controls="vpop"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.8l7.2 3.8L10 10.4 2.8 6.6 10 2.8z"/><path d="M2.8 10.2L10 14l7.2-3.8"/><path d="M2.8 13.6L10 17.4l7.2-3.8"/></svg><span class="lbl" aria-hidden="true">View</span></button>
       <div class="vpop" id="vpop" hidden>
+        <div class="row2" id="baseRow" hidden><h3 id="vh0">Background</h3>
+          <div class="seg" id="baseSeg" role="group" aria-labelledby="vh0">
+            <button type="button" data-base="photo" aria-pressed="false">Aerial photo</button>
+            <button type="button" data-base="plain" aria-pressed="true">Plain</button>
+          </div>
+          <p class="small" id="baseNote"></p>
+        </div>
         <div class="row2"><h3 id="vh1">Map</h3>
           <div class="seg" id="viewSeg" role="group" aria-labelledby="vh1">
             <button type="button" data-view="2d" aria-pressed="false">Flat</button>
@@ -528,7 +536,7 @@ var CATCH=TOWN.catches;
 var EVENTS=TOWN.events;
 function evOf(k){for(var i=0;i<EVENTS.length;i++)if(EVENTS[i].k===k)return EVENTS[i];return null;}
 var EDGE={},STAT={},BLK={},BOF={},BOUNDS=null;
-var state={mode:'change',view:'3d',sel:null,page:'home',prev:'home',hl:null,ev:null,tab:'answers',all:false,lv:false,pick:null,lview:'corner',layers:{dots:true,bld:true,env:true,lines:false}};
+var state={mode:'change',view:'3d',sel:null,page:'home',prev:'home',hl:null,ev:null,tab:'answers',all:false,lv:false,pick:null,lview:'corner',layers:{dots:true,bld:true,env:true,lines:false},base:'plain'};
 var DATA={parcels:null,rules:null,addr:{}};
 var byId={},index=[];
 var map,mapReady=false;
@@ -555,6 +563,7 @@ function makeDots(fc){
     var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
     polys.forEach(function(p){p[0].forEach(function(c){if(c[0]<x0)x0=c[0];if(c[0]>x1)x1=c[0];if(c[1]<y0)y0=c[1];if(c[1]>y1)y1=c[1];});});
     var props={c:pr.cur_class||'other',d:pr.draft_class||'other',x:cat(pr)};
+    pr.c=props.c;pr.d=props.d;pr.x=props.x;   /* the lot carries the same three keys, so the tint over a photo can use the dots' colors */
     var n=0;
     for(var i=Math.ceil(x0/DLNG);i<=Math.floor(x1/DLNG);i++){
       for(var j=Math.ceil(y0/DLAT);j<=Math.floor(y1/DLAT);j++){
@@ -609,6 +618,63 @@ function envData(){
   return {type:'FeatureCollection',features:[{type:'Feature',geometry:p.geometry,properties:{cur:(pr.h_cur||0)*FT,base:(pr.h_draft||0)*FT,max:(pr.h_draft_max||pr.h_draft||0)*FT}}]};
 }
 function setVis(id,on){map.setLayoutProperty(id,'visibility',on?'visible':'none');}
+/* ---------- the picture under the map ----------
+   town.js names the tile sources (TOWN.basemap): aerial photos go under everything, streets and their names come from
+   vector tiles. With no basemap block the map stays plain paper, as before. A tile that fails just leaves paper. */
+var BM=TOWN.basemap||null,PHOTO=[];
+function hasPhoto(){return !!(BM&&BM.photo&&BM.photo.length);}
+function addBase(){
+  if(!BM)return;
+  (BM.photo||[]).forEach(function(q,i){
+    var src={type:'raster',tiles:q.tiles,tileSize:q.tileSize||256,attribution:q.credit||''},lay={id:'photo'+i,type:'raster',source:'photo'+i,layout:{visibility:'none'},paint:{'raster-fade-duration':dur(250)}};
+    if(q.minzoom!=null){src.minzoom=q.minzoom;lay.minzoom=q.minzoom;}
+    if(q.maxzoom!=null)src.maxzoom=q.maxzoom;
+    map.addSource('photo'+i,src);map.addLayer(lay,'parcels-fill');PHOTO.push('photo'+i);
+  });
+  if(PHOTO.length)map.addLayer({id:'tint',type:'fill',source:'parcels',layout:{visibility:'none'},paint:{'fill-color':dotColor(),'fill-opacity':['interpolate',['linear'],['zoom'],14,0.55,16.5,0.38,18,0.16,19,0.08]}},'parcels-fill');
+  if(BM.hills){
+    map.addSource('hills',{type:'raster-dem',tiles:BM.hills.tiles,encoding:BM.hills.encoding||'terrarium',tileSize:BM.hills.tileSize||256,maxzoom:BM.hills.maxzoom||14,attribution:BM.hills.credit||''});
+    map.addLayer({id:'hills',type:'hillshade',source:'hills',paint:{'hillshade-exaggeration':0.5,'hillshade-shadow-color':'#8A8272','hillshade-highlight-color':'#FFFFFF','hillshade-accent-color':'#B9B2A3'}},PHOTO[0]||'parcels-fill');
+  }
+  if(BM.names){
+    map.addSource('streets',{type:'vector',url:BM.names.url});
+    map.addLayer({id:'roads',type:'line',source:'streets','source-layer':'transportation',minzoom:12,
+      filter:['match',['get','class'],['motorway','trunk','primary','secondary','tertiary','minor','service'],true,false],
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':css('--panel'),'line-opacity':0.8,'line-width':['interpolate',['exponential',1.6],['zoom'],12,['match',['get','class'],['service'],0,0.6],15,['match',['get','class'],['service'],1,3.2],18,['match',['get','class'],['service'],7,22]]}},'parcels-fill');
+    map.addLayer({id:'road-names',type:'symbol',source:'streets','source-layer':'transportation_name',minzoom:13,
+      filter:['match',['get','class'],['motorway','trunk','primary','secondary','tertiary','minor','service'],true,false],
+      layout:{'symbol-placement':'line','text-field':['coalesce',['get','name_en'],['get','name']],'text-font':[BM.names.font],'text-size':['interpolate',['linear'],['zoom'],13,11,16,13,18,15],'text-letter-spacing':0.02,'symbol-spacing':320,'text-max-angle':35},
+      paint:{'text-color':css('--ink'),'text-halo-color':css('--panel'),'text-halo-width':1.4}});
+  }
+}
+function syncBase(){
+  if(!mapReady||!BM)return;
+  var ph=state.base==='photo'&&hasPhoto();
+  PHOTO.forEach(function(id){setVis(id,ph);});
+  if(map.getLayer('hills'))setVis('hills',!ph);
+  if(map.getLayer('roads')){
+    setVis('roads',!ph);
+    map.setPaintProperty('road-names','text-color',ph?'#FFFFFF':css('--ink'));
+    map.setPaintProperty('road-names','text-halo-color',ph?'rgba(14,35,64,.85)':css('--panel'));
+  }
+  /* on a photo a carpet of dots would hide the town, so each lot gets a light tint in the same colors and a white lot line.
+     The tint thins out as you zoom in, and the photo already shows the buildings. */
+  setVis('dots',state.layers.dots&&!ph);
+  setVis('tint',ph&&state.layers.dots&&!state.hl);
+  if(ph)map.setPaintProperty('tint','fill-color',dotColor());
+  map.setPaintProperty('parcels-line','line-color',ph?'#FFFFFF':css('--muted'));
+  map.setPaintProperty('parcels-line','line-opacity',ph?0.75:0.6);
+  setVis('parcels-line',ph||state.layers.lines);
+  setVis('bld',state.layers.bld&&!ph);
+}
+function setBase(b){
+  state.base=b==='photo'&&hasPhoto()?'photo':'plain';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-base]'),function(x){x.setAttribute('aria-pressed',String(x.getAttribute('data-base')===state.base));});
+  try{localStorage.setItem('zx-base',state.base);}catch(e){}
+  syncBase();
+  if(LV3)LV3.ground();
+}
 function syncMap(){
   if(!mapReady)return;
   map.getSource('env').setData(envData());
@@ -621,6 +687,7 @@ function syncMap(){
   setVis('env-base',d3&&L.env&&state.mode!=='now');
   setVis('env-inc',d3&&L.env&&state.mode!=='now');
   map.setPaintProperty('bld','fill-extrusion-height',d3?4:0);
+  syncBase();
   syncExtra();
 }
 function syncExtra(){
@@ -986,6 +1053,7 @@ function lvHow(m,dr){
   if(m.through)p.push('This lot runs from one street to another, so both ends get the '+s.front_ft+' ft distance.');
   p.push('On a block where the houses sit closer than that, the draft uses the block\'s average. We do not measure block averages, so the real frame can be larger.');
   if(m.outside)p.push('Part of today\'s building sits outside the frame. The frame is for new buildings.');
+  if(state.base==='photo'&&BM&&BM.lotPhoto)p.push('The ground is an aerial photo. It shows what is there now, even under an example building.'+(BM.photoNote?' '+BM.photoNote:''));
   p.push('We have no street map, so we work out which side faces the street from the lot lines. County lot lines are good to a few feet. Open space rules and overlays are not applied.');
   return '<details class="mored lvhow"><summary class="more">How to read the model</summary><div class="prose">'+p.map(function(x){return '<p>'+esc(x)+'</p>';}).join('')+'<p class="small">'+esc(citeLine([ci.yards,ci.rear,m.corner?ci.corner:null,ci.block]))+'</p></div></details>';
 }
@@ -1036,7 +1104,8 @@ function lvLoad(){
     LV3=ZonaLot3D.mount({stage:$('lv'),canvas:$('lvgl'),tags:$('lvtags'),calm:CALM.matches,inset:lvInset,onTouch:lvStop,
       label:function(c){return chShort(lotModel(state.sel),c);},
       limit:function(m){return 'Height limit · '+stor(m.stories)+', '+m.height_ft+' ft';},
-      onView:function(v){state.lview=v;lvViews();}});
+      onView:function(v){state.lview=v;lvViews();},
+      photo:function(b,w,h){return state.base==='photo'&&BM&&BM.lotPhoto?BM.lotPhoto.replace('{bbox}',b.join(',')).replace('{w}',w).replace('{h}',h):null;}});
     $('lv').classList.remove('flat');lvShow();
   }).catch(function(){LV3=null;});   /* no WebGL or no network: the flat plan stays */
 }
@@ -1162,7 +1231,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
   index.sort(function(a,b){return (a.street?0:1)-(b.street?0:1)||(a.street<b.street?-1:a.street>b.street?1:0);});
   buildEdges(r[0]);computeStats();buildBlocks();
   var dots=makeDots(r[0]);
-  map=new maplibregl.Map({container:'map',style:{version:8,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':css('--map-bg')}}]},center:[(x0+x1)/2,(y0+y1)/2],zoom:14.4,pitch:48,bearing:-20,maxPitch:80,attributionControl:false,dragRotate:true});
+  map=new maplibregl.Map({container:'map',style:{version:8,glyphs:BM&&BM.names?BM.names.glyphs:undefined,sources:{},layers:[{id:'bg',type:'background',paint:{'background-color':css('--map-bg')}}]},center:[(x0+x1)/2,(y0+y1)/2],zoom:14.4,pitch:48,bearing:-20,maxPitch:80,attributionControl:false,dragRotate:true});
   map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
   map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:TOWN.mapCreditsHtml}),'bottom-right');
   if(!DESK.matches)setTimeout(function(){var a=document.querySelector('.maplibregl-ctrl-attrib');if(a){a.classList.remove('maplibregl-compact-show');a.removeAttribute('open');}},0);
@@ -1172,6 +1241,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
     map.addSource('buildings',{type:'geojson',data:r[1]});
     map.addSource('env',{type:'geojson',data:envData()});
     map.addLayer({id:'parcels-fill',type:'fill',source:'parcels',paint:{'fill-color':'#888888','fill-opacity':0.01}});
+    addBase();
     map.addLayer({id:'parcels-line',type:'line',source:'parcels',layout:{visibility:'none'},paint:{'line-color':css('--muted'),'line-width':['interpolate',['linear'],['zoom'],14,0.2,17,0.8],'line-opacity':0.6}});
     map.addLayer({id:'dots',type:'circle',source:'dots',paint:{'circle-color':dotColor(),'circle-radius':['interpolate',['linear'],['zoom'],14,1.6,16,2.9,18,5],'circle-pitch-alignment':'map','circle-pitch-scale':'map','circle-opacity':0.95}});
     map.addLayer({id:'sel-fill',type:'fill',source:'parcels',filter:['==',['get','id'],state.sel||''],paint:{'fill-color':css('--sel'),'fill-opacity':0.16}});
@@ -1201,6 +1271,7 @@ Promise.all([fetchJSON('data/parcels.json'),fetchJSON('data/buildings.json'),fet
 
 $('modeSeg').addEventListener('click',function(e){var b=e.target.closest('button[data-mode]');if(b)setMode(b.getAttribute('data-mode'));});
 $('viewSeg').addEventListener('click',function(e){var b=e.target.closest('button[data-view]');if(b)setView(b.getAttribute('data-view'));});
+$('baseSeg').addEventListener('click',function(e){var b=e.target.closest('button[data-base]');if(b)setBase(b.getAttribute('data-base'));});
 $('tsSeg').addEventListener('click',function(e){var b=e.target.closest('button[data-ts]');if(b)setTs(b.getAttribute('data-ts'));});
 $('viewBtn').addEventListener('click',function(){setPop($('vpop').hidden);});
 document.addEventListener('click',function(e){if(!$('vpop').hidden&&!e.target.closest('.vwrap'))setPop(false);});
@@ -1255,5 +1326,14 @@ document.addEventListener('keydown',function(e){
 window.addEventListener('resize',function(){setTimeout(pad,60);});
 try{DESK.addEventListener('change',function(){setTimeout(function(){if(mapReady){map.resize();pad();}},80);});}catch(e){}
 try{var t0=localStorage.getItem('zx-ts');if(t0==='big')setTs('big');}catch(e){}
+/* aerial photo is the default where the town has one, unless the person turned it off or asked their browser to save data */
+(function(){
+  if(!hasPhoto())return;
+  $('baseRow').hidden=false;if(BM.photoNote)$('baseNote').textContent=BM.photoNote;
+  var b=null;try{b=localStorage.getItem('zx-base');}catch(e){}
+  var q=/[?&]base=(photo|plain)/.exec(location.search);if(q)b=q[1];
+  if(!b)b=navigator.connection&&navigator.connection.saveData?'plain':'photo';
+  setBase(b);
+})();
 })();
 </script>

@@ -6,7 +6,7 @@
 var TOWN={
   // Shown above the overview number: "Draft zoning · State College Borough".
   place:'State College Borough',
-  mapLabel:'Map of State College parcels shown as dots, with 3D buildings',
+  mapLabel:'Map of State College: an aerial photo with each lot tinted by how its height limit changes',
 
   // The draft being explained. The date shows on every page.
   draft:{name:'Second draft',date:'June 2026'},
@@ -122,6 +122,7 @@ var TOWN={
       ['gap','Rule','<b>Answers.</b> "Yes" means the draft use table lists the use as permitted, so Borough staff sign off with a permit. "Yes, after a hearing" means a special exception (the Zoning Hearing Board decides) or a conditional use (Borough Council decides). "No" means the draft does not list it for that district. "Not decided yet" marks rules Council is still changing. Setbacks, lot coverage, density and overlays also apply and are not applied here. Today\'s uses are not loaded as a table, so answers cover the draft only.'],
       ['gap','Flag','<b>Next to a district line.</b> A lot that touches a lot in a different draft district gets a warning, because the draft shapes were traced from a PDF and the lot may belong to the neighbor.'],
       ['gap','Partial','<b>Street addresses.</b> Joined from the Borough\'s tax parcel layer, so 3,088 of 3,125 parcels have one. Parcels outside the Borough have none.'],
+      ['gap','Partial','<b>Aerial photos and street names.</b> The background photo comes from the U.S. Geological Survey when zoomed out and from Pennsylvania\'s statewide aerial photos (PEMA, served by PASDA) up close. The close-up photos were taken between 2018 and 2020, so newer buildings are missing. They load live from those public servers and can take a few seconds. Street names come from OpenStreetMap. The photo is a backdrop only: no answer is read from it.'],
       ['gap','Partial','<b>Buildings.</b> Footprints come from Microsoft\'s 2019 US building dataset, so recent demolition or construction is missing.'],
       ['no','Missing','<b>Building heights.</b> Existing buildings are drawn low. Existing-versus-allowed comparisons are footprint only.'],
       ['gap','Partial','<b>The lot model.</b> On Residence 2 lots with a simple shape (1,750 of 2,156), the model applies the draft\'s yard distances, lot width, lot size and height, from Table C.3.3(c), D.3.4(a) and Part H. We have no street map, so the side that faces the street is worked out from the lot lines. Lot cover counts buildings only. Open space rules and block averages are not applied. The orange building is one example, not a plan.'],
@@ -132,9 +133,27 @@ var TOWN={
       ['https://ecode360.com/32909719','Current zoning ordinance on ecode360',''],
       ['https://mapservices.pasda.psu.edu/server/rest/services/pasda/CentreCounty/MapServer','PASDA Centre County map service','(parcels)'],
       ['https://github.com/microsoft/USBuildingFootprints','Microsoft US Building Footprints',''],
+      ['https://www.pasda.psu.edu/uci/SearchResults.aspx?Keyword=PEMA+Orthos','PEMA aerial photos on PASDA','(close-up background photos)'],
+      ['https://www.openstreetmap.org/copyright','OpenStreetMap','(streets and street names, through OpenFreeMap)'],
       ['https://www.statecollege.com/articles/local-news/neighboring-residents-voice-concerns-as-autoport-redevelopment-plan-gets-first-public-review/','StateCollege.com on the Autoport plan','']
     ],
     foot:'Prototype for discussion, built by Nish Barot. Plain-language summaries can be wrong. This is not legal advice or a development feasibility study. Confirm any rule with the Borough Planning and Zoning Department before relying on it.'
+  },
+
+  // The picture under the map. Delete this block and the map goes back to plain paper.
+  // photo: aerial photo layers, far to near. Each has tiles (a MapLibre raster tile URL), tileSize, minzoom or maxzoom, and a credit.
+  // names: vector tiles in the OpenMapTiles layout, used for street shapes and street names.
+  basemap:{
+    photo:[
+      {tiles:['https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:16,credit:'Imagery: USGS'},
+      {tiles:['https://imagery.pasda.psu.edu/arcgis/rest/services/pasda/PEMAImagery2018_2020/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=jpg&f=image'],tileSize:512,minzoom:16,maxzoom:20,credit:'Aerial photos: PEMA via PASDA, 2018 to 2020'}
+    ],
+    photoNote:'Close-up photos were taken between 2018 and 2020, so newer buildings are missing.',
+    // one picture for the ground under a lot model: {bbox} is west,south,east,north in web mercator metres, {w} and {h} are pixels
+    lotPhoto:'https://imagery.pasda.psu.edu/arcgis/rest/services/pasda/PEMAImagery2018_2020/MapServer/export?bbox={bbox}&bboxSR=3857&imageSR=3857&size={w},{h}&format=jpg&f=image',
+    // elevation tiles, used to shade hills on the plain map
+    hills:{tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14,credit:'Terrain: Mapzen, USGS'},
+    names:{url:'https://tiles.openfreemap.org/planet',glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',font:'Noto Sans Regular'}
   },
 
   // Credits in the map corner. HTML allowed.
